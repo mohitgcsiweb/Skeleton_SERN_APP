@@ -61,12 +61,14 @@ export async function login(req, res) {
     // }
 
     const conn = await sfConnection();
-    const query = `SELECT Id, Password__c, isActive__c FROM Portal_User__c WHERE Contact_Email__c = '${email}' AND isActive__c = true LIMIT 1`;
+    const query = `SELECT Id, Password__c, isActive__c, Audience__c, mfaSecret__c, isMfaEnabled__c FROM Portal_User__c WHERE Contact_Email__c = '${email}' AND isActive__c = true LIMIT 1`;
+
     const result = await conn.query(query);
     if (result.totalSize === 0) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
     const user = result.records[0];
+    console.log(user);
     const isMatch = await bcrypt.compare(password, user.Password__c);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials" });
@@ -79,6 +81,12 @@ export async function login(req, res) {
       userData: {
         id: user.Id,
         email: email,
+        isActive: user.isActive__c,
+        Password: user.Password__c,
+        resetToken: user.isMfaEnabled__c,
+        isMfaEnabled: user.isMfaEnabled__c,
+        Audience: user.Audience__c,
+        mfaSecret: user.mfaSecret__c,
       },
       message: "Login successful",
     });
@@ -247,6 +255,7 @@ export async function manageProfile(req, res) {
 
 export async function verifySession(req, res) {
   try {
+    console.log("In verify Seesion ");
     const user = await User.findById(req.params.id).populate("audience");
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json({ userData: user });
