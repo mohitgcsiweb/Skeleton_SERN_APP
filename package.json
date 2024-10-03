@@ -1,0 +1,46 @@
+{
+  "name": "skeleton-mern-app",
+  "version": "1.0.0",
+  "main": "index.js",
+  "engines": {
+        "node": "^20.16.0",
+        "npm": "^10.8.2"
+  },
+  "scripts": {
+    "install-server": "cd backend && npm install",
+    "start-server": "cd backend && npm start",
+    "build-server": "cd frontend && npm run build",
+    "install-client": "cd frontend && npm install",
+    "start-client": "cd frontend && npm start",
+    "build-client": "cd frontend && npm run build",
+    "start": "concurrently \"npm run start-server\" \"npm run start-client\"",
+    "build": "concurrently \"npm run build-client\" \"npm run build-server\"",
+    "heroku-postbuild": "cd frontend && npm install && npm run build"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "keywords": [],
+  "author": "Akshay Dhruv",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gcsi-dev/skeleton-mern-app.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gcsi-dev/skeleton-mern-app/issues"
+  },
+  "homepage": "https://github.com/gcsi-dev/skeleton-mern-app#readme",
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

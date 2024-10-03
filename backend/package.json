@@ -1,0 +1,50 @@
+{
+    "name": "backend",
+    "version": "1.0.0",
+    "main": "server.js",
+    "type": "module",
+    "engines": {
+        "node": "^20.16.0",
+        "npm": "^10.8.2"
+    },
+    "scripts": {
+        "start": "nodemon server.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "Akshay Dhruv",
+    "license": "ISC",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/gcsi-dev/skeleton-mern-app.git"
+    },
+    "bugs": {
+        "url": "https://github.com/gcsi-dev/skeleton-mern-app/issues"
+    },
+    "homepage": "https://github.com/gcsi-dev/skeleton-mern-app#readme",
+    "dependencies": {
+        "bcryptjs": "^2.4.3",
+        "body-parser": "^1.20.2",
+        "compression": "^1.7.4",
+        "cookie-parser": "^1.4.6",
+        "cors": "^2.8.5",
+        "cronstrue": "^2.50.0",
+        "csvtojson": "^2.0.10",
+        "dotenv": "^16.4.5",
+        "express": "^4.17.1",
+        "express-sanitizer": "^1.0.6",
+        "helmet": "^7.1.0",
+        "jsforce": "^3.4.2",
+        "jsonwebtoken": "^9.0.2",
+        "mongoose": "^7.0.0",
+        "node-cron": "^3.0.3",
+        "nodemailer": "^6.7.2",
+        "nodemon": "^3.1.4",
+        "path": "^0.12.7",
+        "qrcode": "^1.5.0",
+        "qrcode-decoder": "^0.3.4",
+        "qrcode.react": "^3.1.0",
+        "speakeasy": "^2.0.0",
+        "ssh2-sftp-client": "^11.0.0"
+    }
+}

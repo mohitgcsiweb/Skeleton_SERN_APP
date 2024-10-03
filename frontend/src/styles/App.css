@@ -1,0 +1,25 @@
+body {
+    min-height: 100vh;
+    background-color:rgba(108, 117, 125, 0.1);
+  }
+
+div.card {
+  background-color: white; 
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); 
+  border: none; 
+}
+
+div.card-header {
+    background-color: rgba(14, 41, 86, 1);
+    color: white;
+    font-size: 1rem;
+}
+
+.form-label {
+    font-weight: bold; 
+}
+
+.custom-btn {
+  background-color: rgba(14, 41, 86, 1);
+  color: white;
+}
