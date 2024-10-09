@@ -12,6 +12,7 @@ const LOWERCASE = /[a-z]/g;
 const UPPERCASE = /[A-Z]/g;
 const NUMBERS = /[0-9]/g;
 
+
 export async function login(req, res) {
   const { email, password } = req.body;
   try {
