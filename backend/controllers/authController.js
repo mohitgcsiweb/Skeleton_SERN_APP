@@ -12,10 +12,10 @@ const LOWERCASE = /[a-z]/g;
 const UPPERCASE = /[A-Z]/g;
 const NUMBERS = /[0-9]/g;
 
-
 export async function login(req, res) {
   const { email, password } = req.body;
   try {
+    //Mongo
     // const user = await User.findOne({ email, isActive: true }).populate(
     //   "audience"
     // );
@@ -61,6 +61,7 @@ export async function login(req, res) {
     //   });
     // }
 
+    // Salesforce
     const conn = await sfConnection();
     const query = `SELECT Id, Password__c, isActive__c, Audience__c, mfaSecret__c, isMfaEnabled__c FROM Portal_User__c WHERE Contact_Email__c = '${email}' AND isActive__c = true LIMIT 1`;
 
@@ -69,7 +70,6 @@ export async function login(req, res) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
     const user = result.records[0];
-    console.log(user);
     const isMatch = await bcrypt.compare(password, user.Password__c);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials" });
@@ -94,7 +94,6 @@ export async function login(req, res) {
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: err.message });
-    //Cast to ObjectId failed for value "undefined" (type string) at path "_id" for model "User"
   }
 }
 
@@ -256,10 +255,40 @@ export async function manageProfile(req, res) {
 
 export async function verifySession(req, res) {
   try {
-    console.log("In verify Seesion ");
-    const user = await User.findById(req.params.id).populate("audience");
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json({ userData: user });
+    //Mongo
+    // const user = await User.findById(req.params.id).populate("audience");
+    // if (!user) return res.status(404).json({ message: "User not found" });
+    // res.json({ userData: user });
+
+    // Salesforce
+    const conn = await sfConnection();
+    const query = `
+      SELECT Id, Contact__r.FirstName, Contact__r.Name, Contact__r.LastName, Contact__r.Email, isActive__c,
+             Audience__r.Name, Audience__r.Id, Audience__r.Role__c, Audience__r.isAdmin__c
+      FROM Portal_User__c
+      WHERE Id = '${req.params.id}'`;
+
+    const result = await conn.query(query);
+
+    if (result.totalSize === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const user = result.records[0];
+    const userData = {
+      id: user.Id,
+      Name: user.Contact__r.Name,
+      firstName: user.Contact__r.FirstName,
+      lastName: user.Contact__r.LastName,
+      email: user.Contact__r.Email,
+      isActive: user.isActive__c,
+      audience: {
+        id: user.Audience__r.Id,
+        name: user.Audience__r.Name,
+        role: user.Audience__r.Role__c,
+        isAdmin: user.Audience__r.isAdmin__c,
+      },
+    };
+    res.json({ userData });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

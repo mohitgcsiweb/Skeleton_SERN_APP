@@ -96,8 +96,42 @@ export async function createUser(req, res) {
 
 export async function getAllUsers(req, res) {
   try {
-    let users = await User.find({}).populate("audience");
-    if (!users) return res.status(404).json({ message: "Users not found" });
+    //Mongo
+    // let users = await User.find({}).populate("audience");
+    // if (!users) return res.status(404).json({ message: "Users not found" });
+    // res.json(users);
+
+    //Salesforce
+    console.log("In get AllUser");
+    const conn = await sfConnection();
+
+    const query = `
+    SELECT Id, isActive__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, 
+           Audience__r.Name, Audience__r.Id, Audience__r.Role__c, Audience__r.isAdmin__c
+    FROM Portal_User__c`;
+
+    const result = await conn.query(query);
+    if (result.totalSize === 0) {
+      return res.status(404).json({ message: "Users not found" });
+    }
+
+    const users = result.records.map((user) => ({
+      id: user.Id,
+      isActive: user.isActive__c,
+      contact: {
+        firstName: user.Contact__r.FirstName,
+        lastName: user.Contact__r.LastName,
+        email: user.Contact__r.Email,
+      },
+      audience: {
+        id: user.Audience__r.Id,
+        name: user.Audience__r.Name,
+        role: user.Audience__r.Role__c,
+        isAdmin: user.Audience__r.isAdmin__c,
+      },
+    }));
+    console.log("Users from getalluser to frontend", users);
+
     res.json(users);
   } catch (err) {
     res.status(500).json({ message: err.message });

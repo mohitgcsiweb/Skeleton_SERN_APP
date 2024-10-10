@@ -19,7 +19,11 @@ const TopNavbar = () => {
     const fetchUser = async () => {
       try {
         if (userData) {
-          const userId = JSON.parse(userData)._id;
+          // Mongo
+          // const userId = JSON.parse(userData)._id;
+          // Salesforce code below
+          const parsedData = JSON.parse(userData);
+          const userId = parsedData.id;
           const response = await axios.get(
             `${apiUrl}/auth/verify-session/${userId}`,
             {
@@ -28,7 +32,9 @@ const TopNavbar = () => {
               },
             }
           );
-          setUserName(response.data.userData.userName);
+          // setUserName(response.data.userData.userName); Mongo
+          // Salesforce
+          setUserName(response.data.userData.Name);
           setUserRole(response.data.userData.audience.role);
           setIsAdmin(response.data.userData.audience.isAdmin);
         }

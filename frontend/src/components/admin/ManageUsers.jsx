@@ -31,7 +31,12 @@ const ManageUsers = () => {
   });
   const [selectedUser, setSelectedUser] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const userId = JSON.parse(localStorage.getItem("userData"))._id;
+
+  // Mongo
+  // const userId = JSON.parse(localStorage.getItem("userData"))._id;
+  // Salesforce
+  const userId = JSON.parse(localStorage.getItem("userData")).id;
+
   let options = [];
   audiences.map((audience) =>
     options.push({ value: audience._id, label: audience.role })
@@ -61,6 +66,7 @@ const ManageUsers = () => {
         const response = await axios.get(`${apiUrl}/admin/users`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
+        console.log("Response of fetchUsers:", response);
         setUsers(response.data);
       } catch (error) {
         if (error.response && error.response.status === 401) {
