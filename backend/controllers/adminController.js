@@ -102,7 +102,6 @@ export async function getAllUsers(req, res) {
     // res.json(users);
 
     //Salesforce
-    console.log("In get AllUser");
     const conn = await sfConnection();
 
     const query = `
@@ -130,7 +129,8 @@ export async function getAllUsers(req, res) {
         isAdmin: user.Audience__r.isAdmin__c,
       },
     }));
-    console.log("Users from getalluser to frontend", users);
+
+    console.log("Users", users);
 
     res.json(users);
   } catch (err) {

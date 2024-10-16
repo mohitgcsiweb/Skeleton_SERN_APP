@@ -1,7 +1,15 @@
 import { Router } from "express";
 import authenticate from "../middleware/authMiddleware.js";
-import adminOnly from '../middleware/adminMiddleware.js';
-import { createUser, getAllUsers, updateUser, createAudience, getAllAudiences, updateAudience, getAllTiles } from "../controllers/adminController.js";
+import adminOnly from "../middleware/adminMiddleware.js";
+import {
+  createUser,
+  getAllUsers,
+  updateUser,
+  createAudience,
+  getAllAudiences,
+  updateAudience,
+  getAllTiles,
+} from "../controllers/adminController.js";
 const router = Router();
 
 router.post("/users", authenticate, adminOnly, createUser);

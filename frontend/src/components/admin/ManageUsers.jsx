@@ -164,30 +164,41 @@ const ManageUsers = () => {
 
   const colDefs = useMemo(() => {
     return [
-      { field: "userName" },
-      { field: "email" },
+      {
+        field: "username",
+        headerName: "Username",
+        valueGetter: (params) =>
+          `${params.data.contact.firstName} ${params.data.contact.lastName}`,
+      },
+      {
+        field: "contact.email",
+        headerName: "Email",
+        valueGetter: (params) => params.data.contact.email,
+      },
       {
         field: "lastLogin",
-        valueFormatter: function (params) {
-          return moment(params.value).format("MM/DD/YYYY h:mm:ss a");
-        },
+        headerName: "Last Login",
+        valueFormatter: (params) =>
+          params.value
+            ? moment(params.value).format("MM/DD/YYYY h:mm:ss a")
+            : "N/A",
         filter: "agDateColumnFilter",
       },
       {
         field: "isMfaEnabled",
+        headerName: "MFA Enabled",
         cellRenderer: "agCheckboxCellRenderer",
         filter: false,
       },
       {
         field: "isActive",
-        cellRenderer: "agCheckboxCellRenderer",
-        filter: false,
+        headerName: "Active Status",
+        cellRenderer: (params) => (params.value ? "Yes" : "No"),
       },
       {
-        field: "audience",
-        valueFormatter: function (params) {
-          return params.value.role;
-        },
+        field: "audience.role",
+        headerName: "Role",
+        valueGetter: (params) => params.data.audience.role,
       },
       {
         field: "actions",
@@ -210,6 +221,9 @@ const ManageUsers = () => {
     return {
       filter: "agTextColumnFilter",
       floatingFilter: true,
+      floatingFilter: true,
+      autoHeight: true,
+      resizable: true,
     };
   }, []);
 
