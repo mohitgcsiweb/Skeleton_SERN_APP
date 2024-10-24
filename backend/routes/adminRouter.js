@@ -18,6 +18,7 @@ router.post("/users", authenticate, adminOnly, createUser);
 //Salesforce
 router.get("/users", authenticate, adminOnly, getAllUsers);
 
+//Salesforce
 router.put("/users/:id", authenticate, adminOnly, updateUser);
 
 router.post("/audiences", authenticate, adminOnly, createAudience);
