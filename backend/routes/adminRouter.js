@@ -12,8 +12,10 @@ import {
 } from "../controllers/adminController.js";
 const router = Router();
 
+//Salesforce
 router.post("/users", authenticate, adminOnly, createUser);
 
+//Salesforce
 router.get("/users", authenticate, adminOnly, getAllUsers);
 
 router.put("/users/:id", authenticate, adminOnly, updateUser);

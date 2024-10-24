@@ -74,6 +74,12 @@ export async function login(req, res) {
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
+
+    const lastLoginUpdate = await conn.sobject("Portal_User__c").update({
+      Id: user.Id,
+      lastLogin__c: new Date().toISOString(),
+    });
+
     const jwtToken = jwt.sign({ id: user.Id }, jwtSecret, {
       expiresIn: sessionTimeout,
     });

@@ -130,8 +130,6 @@ export async function getAllUsers(req, res) {
       },
     }));
 
-    console.log("Users", users);
-
     res.json(users);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -234,7 +232,6 @@ export async function updateAudience(req, res) {
       audience.seeNotes = updatedAudience.seeNotes;
     }
     if (tiles) {
-      
       audience.tiles = tiles;
     }
     await audience.save();
