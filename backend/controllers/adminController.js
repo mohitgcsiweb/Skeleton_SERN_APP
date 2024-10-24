@@ -140,29 +140,85 @@ export async function getAllUsers(req, res) {
 
 export async function updateUser(req, res) {
   const { updatedUser } = req.body;
+  const userId = updatedUser.id;
+  // console.log(updatedUser);
   try {
-    const user = await User.findById(req.params.id).populate("audience");
-    if (!user) return res.status(404).json({ message: "User not found" });
-    let users = await User.find({}).populate("audience");
-    users = users.filter((user) => user.audience.isAdmin);
-    if (updatedUser && user.audience.isAdmin && users.length > 1) {
-      user.userName = updatedUser.userName;
-      user.isActive = updatedUser.isActive;
-      user.audience = new Types.ObjectId(updatedUser.audience);
-      user.isMfaEnabled = updatedUser.isMfaEnabled;
-      user.mfaSecret = updatedUser.isMfaEnabled ? user.mfaSecret : "";
-    } else if (updatedUser && user.audience.isAdmin && users.length <= 1) {
-      return res.status(500).json({
-        message: "User cannot be modified since it is an only admin left",
-      });
-    } else if (updatedUser && !user.audience.isAdmin) {
-      user.userName = updatedUser.userName;
-      user.isActive = updatedUser.isActive;
-      user.audience = new Types.ObjectId(updatedUser.audience);
-      user.isMfaEnabled = updatedUser.isMfaEnabled;
-      user.mfaSecret = updatedUser.isMfaEnabled ? user.mfaSecret : "";
+    // Mongo Code Below
+
+    // const user = await User.findById(req.params.id).populate("audience");
+    // if (!user) return res.status(404).json({ message: "User not found" });
+    // let users = await User.find({}).populate("audience");
+    // users = users.filter((user) => user.audience.isAdmin);
+    // if (updatedUser && user.audience.isAdmin && users.length > 1) {
+    //   user.userName = updatedUser.userName;
+    //   user.isActive = updatedUser.isActive;
+    //   user.audience = new Types.ObjectId(updatedUser.audience);
+    //   user.isMfaEnabled = updatedUser.isMfaEnabled;
+    //   user.mfaSecret = updatedUser.isMfaEnabled ? user.mfaSecret : "";
+    // } else if (updatedUser && user.audience.isAdmin && users.length <= 1) {
+    //   return res.status(500).json({
+    //     message: "User cannot be modified since it is an only admin left",
+    //   });
+    // } else if (updatedUser && !user.audience.isAdmin) {
+    //   user.userName = updatedUser.userName;
+    //   user.isActive = updatedUser.isActive;
+    //   user.audience = new Types.ObjectId(updatedUser.audience);
+    //   user.isMfaEnabled = updatedUser.isMfaEnabled;
+    //   user.mfaSecret = updatedUser.isMfaEnabled ? user.mfaSecret : "";
+    // }
+    // await user.save();
+
+    // Salesforce code Below
+
+    const conn = await sfConnection();
+
+    // Retrieve the existing Portal User
+    const userQuery = `
+      SELECT Id, isActive__c, Contact__c, isMfaEnabled__c, Audience__c
+    FROM Portal_User__c
+      WHERE Id = '${userId}'`;
+
+    const userResult = await conn.query(userQuery);
+    const userContactId = userResult.records[0].Contact__c;
+
+    if (userResult.totalSize === 0) {
+      return res.status(404).json({ message: "User not found" });
     }
-    await user.save();
+    const user = userResult.records[0];
+
+    // Check for admin rules before update
+    const idofAdmin = `
+    SELECT Id
+    FROM Audience__c
+    WHERE Role__c = 'Admin'`;
+
+    const idofAdmin2 = await conn.query(idofAdmin);
+    const adminAudienceId = idofAdmin2.records[0].Id;
+    const adminQuery = `SELECT Id FROM Portal_User__c WHERE Audience__c = '${adminAudienceId}' AND  Id != '${userId}'`;
+    const adminResult = await conn.query(adminQuery);
+
+    if (adminResult.totalSize < 1) {
+      return res.status(500).json({
+        message: "User cannot be modified since it is the only admin left",
+      });
+    }
+
+    await conn.sobject("Portal_User__c").update({
+      Id: user.Id,
+      isActive__c: updatedUser.isActive,
+      isMfaEnabled__c: updatedUser.isMfaEnabled,
+      Audience__c: updatedUser.audience,
+    });
+
+    const [firstName, lastName] = updatedUser.userName.split(" ");
+    if (firstName && lastName) {
+      await conn.sobject("Contact").update({
+        Id: userContactId,
+        FirstName: firstName,
+        LastName: lastName,
+      });
+    }
+
     res.json({ message: "User updated successfully" });
   } catch (err) {
     res.status(500).json({ message: err.message });

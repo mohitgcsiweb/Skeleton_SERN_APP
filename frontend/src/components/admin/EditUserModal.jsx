@@ -3,38 +3,42 @@ import { Modal, Button, Form } from "react-bootstrap";
 import Select from "react-select";
 
 const EditUserModal = ({ show, user, audiences, handleClose, handleSave }) => {
-  const [userName, setUserName] = useState(false);
+  const [userName, setUserName] = useState("");
   const [isActive, setIsActive] = useState(false);
   const [isMfaEnabled, setIsMfaEnabled] = useState(false);
-  const [audience, setAudience] = useState("");
-  const [selectedAudience, setSelectedAudience] = useState("");
-  let options = [];
-  audiences.map((audience) =>
-    options.push({ value: audience._id, label: audience.role })
-  );
+  const [selectedAudience, setSelectedAudience] = useState(null);
+  const options = audiences.map((audience) => ({
+    value: audience._id,
+    label: audience.role,
+  }));
 
   useEffect(() => {
     if (user) {
-      setUserName(user.userName);
+      setUserName(user.contact.firstName + " " + user.contact.lastName);
       setIsActive(user.isActive);
       setIsMfaEnabled(user.isMfaEnabled);
-      setAudience(user.audience._id);
-      audiences.map((audience) => {
-        if (user.audience._id === audience._id) {
-          setSelectedAudience({ value: audience._id, label: audience.role });
-        }
-      });
-    }
-  }, [user]);
 
-  const handleAudienceChange = (e) => {
-    setAudience(e.value);
-    setSelectedAudience({ value: e.value, label: e.label });
+      // Find and set the correct audience object for the select component
+      const audienceOption = options.find(
+        (option) => option.value === user.audience.id
+      );
+      setSelectedAudience(audienceOption);
+    }
+  }, [user, audiences]);
+
+  const handleAudienceChange = (selectedOption) => {
+    setSelectedAudience(selectedOption);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    handleSave({ ...user, userName, isActive, isMfaEnabled, audience });
+    handleSave({
+      ...user,
+      userName,
+      isActive,
+      isMfaEnabled,
+      audience: selectedAudience.value,
+    });
   };
 
   const handleActiveChange = () => {
@@ -68,7 +72,6 @@ const EditUserModal = ({ show, user, audiences, handleClose, handleSave }) => {
             <Select
               id="audience"
               value={selectedAudience}
-              defaultValue={selectedAudience}
               onChange={handleAudienceChange}
               options={options}
               placeholder="Select audience..."
@@ -82,7 +85,6 @@ const EditUserModal = ({ show, user, audiences, handleClose, handleSave }) => {
               type="checkbox"
               checked={isActive}
               onChange={handleActiveChange}
-              autoComplete="on"
               label="Active"
             />
           </Form.Group>
@@ -91,13 +93,11 @@ const EditUserModal = ({ show, user, audiences, handleClose, handleSave }) => {
               type="checkbox"
               checked={isMfaEnabled}
               onChange={handleMfaChange}
-              autoComplete="on"
               label="MFA Enabled"
             />
           </Form.Group>
           <Button className="btn-block custom-btn col-md mt-4" type="submit">
-            {" "}
-            Save Changes{" "}
+            Save Changes
           </Button>
         </Form>
       </Modal.Body>

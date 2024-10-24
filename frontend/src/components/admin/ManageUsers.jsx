@@ -130,6 +130,7 @@ const ManageUsers = () => {
 
   const handleUpdateUser = async (updatedUser) => {
     try {
+      console.log("Sending update for user ID:", updatedUser.id);
       const response = await axios.put(
         `${apiUrl}/admin/users/${updatedUser._id}`,
         { updatedUser },
