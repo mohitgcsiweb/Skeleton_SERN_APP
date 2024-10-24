@@ -66,7 +66,6 @@ const ManageUsers = () => {
         const response = await axios.get(`${apiUrl}/admin/users`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
-        console.log("Response of fetchUsers:", response);
         setUsers(response.data);
       } catch (error) {
         if (error.response && error.response.status === 401) {
@@ -187,7 +186,7 @@ const ManageUsers = () => {
       {
         field: "isMfaEnabled",
         headerName: "MFA Enabled",
-        cellRenderer: "agCheckboxCellRenderer",
+        cellRenderer: (params) => (params.value ? "Yes" : "No"),
         filter: false,
       },
       {

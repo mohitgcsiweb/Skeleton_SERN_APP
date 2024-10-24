@@ -105,7 +105,7 @@ export async function getAllUsers(req, res) {
     const conn = await sfConnection();
 
     const query = `
-    SELECT Id, isActive__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, 
+    SELECT Id, isActive__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, lastLogin__c, isMfaEnabled__c, 
            Audience__r.Name, Audience__r.Id, Audience__r.Role__c, Audience__r.isAdmin__c
     FROM Portal_User__c`;
 
@@ -117,6 +117,8 @@ export async function getAllUsers(req, res) {
     const users = result.records.map((user) => ({
       id: user.Id,
       isActive: user.isActive__c,
+      lastLogin: user.lastLogin__c,
+      isMfaEnabled: user.isMfaEnabled__c,
       contact: {
         firstName: user.Contact__r.FirstName,
         lastName: user.Contact__r.LastName,
