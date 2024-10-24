@@ -191,10 +191,34 @@ export async function setPassword(req, res) {
 export async function forgotPassword(req, res) {
   const { email } = req.body;
   try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
-    const resetToken = sign({ id: user._id }, resetSecret, {
+    // MongoDB
+    // const user = await User.findOne({ email });
+    // if (!user) return res.status(404).json({ message: "User not found" });
+    // const resetToken = sign({ id: user._id }, resetSecret, {
+    //   expiresIn: "1h",
+    // });
+    // await sendEmail(
+    //   email,
+    //   "noreply@gcsiweb.com",
+    //   "GCS App Password Reset",
+    //   `Click the link to reset your password: ${url}/reset-password?token=${resetToken}`
+    // );
+    // res.json({ message: "Check your email for reset password link" });
+
+    // Salesforce connection
+    const conn = await sfConnection();
+    const query = `SELECT Id FROM Portal_User__c WHERE Contact__r.Email = '${email}' LIMIT 1`;
+    const result = await conn.query(query);
+    if (result.totalSize === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const user = result.records[0];
+    const resetToken = sign({ id: user.Id }, resetSecret, {
       expiresIn: "1h",
+    });
+    await conn.sobject("Portal_User__c").update({
+      Id: user.Id,
+      resetToken__c: resetToken,
     });
     await sendEmail(
       email,
@@ -226,14 +250,37 @@ export async function resetPassword(req, res) {
     } else if (newPassword.length < 8) {
       return res
         .status(401)
-        .json({ message: "Password length should be atleast 8" });
+        .json({ message: "Password length should be at least 8" });
     }
     const decoded = verify(token, resetSecret);
-    const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-    user.password = newPassword;
-    user.resetToken = "";
-    await user.save();
+
+    // MongoDB
+    // const user = await User.findById(decoded.id);
+    // if (!user) return res.status(404).json({ message: "User not found" });
+    // user.password = newPassword;
+    // user.resetToken = "";
+    // await user.save();
+
+    // Salesforce connection
+    const conn = await sfConnection();
+    const query = `SELECT Id FROM Portal_User__c WHERE Id = '${decoded.id}' AND resetToken__c = '${token}' LIMIT 1`;
+    const result = await conn.query(query);
+    if (result.totalSize === 0) {
+      return res
+        .status(404)
+        .json({ message: "User not found or token invalid" });
+    }
+    const user = result.records[0];
+    // Hash the password using bcrypt
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    const updateResult = await conn.sobject("Portal_User__c").update({
+      Id: user.Id,
+      Password__c: hashedPassword,
+      resetToken__c: "",
+    });
+
     res.json({ message: "Password has been reset" });
   } catch (err) {
     res.status(500).json({ message: err.message });

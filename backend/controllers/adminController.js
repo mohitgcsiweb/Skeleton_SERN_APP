@@ -234,6 +234,7 @@ export async function updateAudience(req, res) {
       audience.seeNotes = updatedAudience.seeNotes;
     }
     if (tiles) {
+      
       audience.tiles = tiles;
     }
     await audience.save();
