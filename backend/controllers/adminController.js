@@ -229,15 +229,41 @@ export async function createAudience(req, res) {
   const { newRole } = req.body;
   try {
     const role = newRole.role;
-    let audience = await Audience.findOne({
-      role: { $regex: new RegExp(role, "i") },
-    });
-    if (audience) {
-      res.status(302).json({ message: "Audience already present" });
+
+    //MongoDB
+    // let audience = await Audience.findOne({
+    //   role: { $regex: new RegExp(role, "i") },
+    // });
+    // if (audience) {
+    //   res.status(302).json({ message: "Audience already present" });
+    // } else {
+    //   audience = new Audience(newRole);
+    //   await audience.save();
+    //   res.status(201).json({ message: "Audience created successfully" });
+    // }
+
+
+    //Salesforce
+    const conn = await sfConnection();
+
+    const query = `SELECT Id, Role__c FROM Audience__c WHERE Role__c = '${role}'`;
+    const result = await conn.query(query);
+
+     if (result.totalSize > 0) {
+      return res.status(302).json({ message: "Audience already present" });
     } else {
-      audience = new Audience(newRole);
-      await audience.save();
-      res.status(201).json({ message: "Audience created successfully" });
+      const newAudience = {
+        Role__c: role,
+        isAdmin__c: role.toLowerCase() === "admin", 
+        isActive__c: newRole.isActive !== undefined ? newRole.isActive : true
+      };
+
+    const createdAudience = await conn.sobject("Audience__c").create(newAudience);
+      if (createdAudience.success) {
+        res.status(201).json({ message: "Audience created successfully", id: createdAudience.id });
+      } else {
+        throw new Error('Failed to create audience in Salesforce');
+      }
     }
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -254,7 +280,7 @@ export async function getAllAudiences(req, res) {
 
     // Salesforce
     const conn = await sfConnection();
-    const result = await conn.query("SELECT Id, Role__c FROM Audience__c");
+    const result = await conn.query("SELECT Id, Role__c, isActive__c FROM Audience__c");
 
     if (!result.records || result.records.length === 0)
       return res.status(404).json({ message: "Audiences not found" });
@@ -262,6 +288,7 @@ export async function getAllAudiences(req, res) {
     const audiences = result.records.map((record) => ({
       _id: record.Id,
       role: record.Role__c,
+      active: record.isActive__c,
     }));
 
     res.json(audiences);
@@ -271,6 +298,7 @@ export async function getAllAudiences(req, res) {
 }
 
 export async function updateAudience(req, res) {
+  console.log(req.body);
   const { tiles, updatedAudience } = req.body;
   try {
     const audience = await Audience.findById(req.params.id).populate("tiles");

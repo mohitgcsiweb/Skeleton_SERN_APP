@@ -21,8 +21,10 @@ router.get("/users", authenticate, adminOnly, getAllUsers);
 //Salesforce
 router.put("/users/:id", authenticate, adminOnly, updateUser);
 
+//Salesforce
 router.post("/audiences", authenticate, adminOnly, createAudience);
 
+//Salesforce
 router.get("/audiences", authenticate, adminOnly, getAllAudiences);
 
 router.put("/audiences/:id", authenticate, adminOnly, updateAudience);
