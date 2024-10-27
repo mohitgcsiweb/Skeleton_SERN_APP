@@ -299,30 +299,66 @@ export async function getAllAudiences(req, res) {
 }
 
 export async function updateAudience(req, res) {
-  console.log(req.body);
+    console.log(req.body);
   const { tiles, updatedAudience } = req.body;
   try {
-    const audience = await Audience.findById(req.params.id).populate("tiles");
-    if (!audience)
+    //Mongo Code below
+    // const audience = await Audience.findById(req.params.id).populate("tiles");
+    // if (!audience)
+    //   return res.status(404).json({ message: "Audience not found" });
+    // if (updatedAudience && !updatedAudience.isActive) {
+    //   const users = await User.find({ audience: req.params.id });
+    //   if (users.length > 0)
+    //     return res.status(500).json({
+    //       message:
+    //         "Audience cannot be deactivated since it has users associated with it. Please de-link the associated users before deactivating the audience.",
+    //     });
+    // }
+    // if (updatedAudience) {
+    //   audience.role = updatedAudience.role;
+    //   audience.isActive = updatedAudience.isActive;
+    //   audience.seeNotes = updatedAudience.seeNotes;
+    // }
+    // if (tiles) {
+    //   audience.tiles = tiles;
+    // }
+    // await audience.save();
+    // res.json({ message: "Audience updated successfully" });
+
+
+    //Salesforce code below
+    const conn = await sfConnection();
+     const audienceQuery = `SELECT Id, Role__c, isActive__c FROM Audience__c WHERE Id = '${req.params.id}'`;
+     const audienceResult = await conn.query(audienceQuery);
+      if (audienceResult.totalSize === 0) {
       return res.status(404).json({ message: "Audience not found" });
+    }
+
+    const audience = audienceResult.records[0];
+
+    // Check if the audience can be deactivated
     if (updatedAudience && !updatedAudience.isActive) {
-      const users = await User.find({ audience: req.params.id });
-      if (users.length > 0)
+      const userQuery = `SELECT Id FROM Portal_User__c WHERE Audience__c = '${req.params.id}'`;
+      const userResult = await conn.query(userQuery);
+      if (userResult.totalSize > 0) {
         return res.status(500).json({
-          message:
-            "Audience cannot be deactivated since it has users associated with it. Please de-link the associated users before deactivating the audience.",
+          message: "Audience cannot be deactivated since it has users associated with it. Please de-link the associated users before deactivating the audience.",
         });
+      }
     }
+
+    // Update the audience details in Salesforce
     if (updatedAudience) {
-      audience.role = updatedAudience.role;
-      audience.isActive = updatedAudience.isActive;
-      audience.seeNotes = updatedAudience.seeNotes;
+      await conn.sobject("Audience__c").update({
+        Id: audience.Id,
+        Role__c: updatedAudience.role,
+        isActive__c: updatedAudience.isActive
+      });
     }
-    if (tiles) {
-      audience.tiles = tiles;
-    }
-    await audience.save();
+
     res.json({ message: "Audience updated successfully" });
+
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

@@ -27,8 +27,11 @@ router.post("/audiences", authenticate, adminOnly, createAudience);
 //Salesforce
 router.get("/audiences", authenticate, adminOnly, getAllAudiences);
 
+//Salesforce Done for Manage Audience.
+// Remaning for ManageTiles
 router.put("/audiences/:id", authenticate, adminOnly, updateAudience);
 
+//Salesforce
 router.get("/tiles", authenticate, adminOnly, getAllTiles);
 
 export default router;
