@@ -349,10 +349,34 @@ export async function verifySession(req, res) {
 
 export async function getTilesByAudienceId(req, res) {
   try {
-    let tiles = await Audience.findOne({ _id: req.params.audienceId }).populate(
-      "tiles"
-    );
-    if (!tiles) return res.status(404).json({ message: "Tiles not found" });
+    // Mongo
+    // let tiles = await Audience.findOne({ _id: req.params.audienceId }).populate(
+    //   "tiles"
+    // );
+    // if (!tiles) return res.status(404).json({ message: "Tiles not found" });
+    // res.json(tiles);
+
+    // Salesforce
+      const conn = await sfConnection();
+      const query = `
+      SELECT Id, Tile__r.name__c, Tile__r.url__c, Audience__r.isAdmin__c, Tile__c
+      FROM AudienceTile__c
+      WHERE Audience__c = '${req.params.audienceId}'
+    `;
+
+    const result = await conn.query(query);
+
+    if (result.records.length === 0) {
+      return res.status(404).json({ message: "Tiles not found" });
+    }
+
+    const tiles = result.records.map(record => ({
+      id: record.Id,
+      name: record.Tile__r.name__c,
+      url: record.Tile__r.url__c,
+      tileId: record.Tile__c
+    }));
+
     res.json(tiles);
   } catch (err) {
     res.status(500).json({ message: err.message });

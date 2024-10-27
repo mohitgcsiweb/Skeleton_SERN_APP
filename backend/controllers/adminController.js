@@ -280,7 +280,7 @@ export async function getAllAudiences(req, res) {
 
     // Salesforce
     const conn = await sfConnection();
-    const result = await conn.query("SELECT Id, Role__c, isActive__c FROM Audience__c");
+    const result = await conn.query("SELECT Id, Role__c, isActive__c, isAdmin__c FROM Audience__c");
 
     if (!result.records || result.records.length === 0)
       return res.status(404).json({ message: "Audiences not found" });
@@ -289,6 +289,7 @@ export async function getAllAudiences(req, res) {
       _id: record.Id,
       role: record.Role__c,
       active: record.isActive__c,
+      isAdmin: record.isAdmin__c,
     }));
 
     res.json(audiences);
@@ -329,8 +330,24 @@ export async function updateAudience(req, res) {
 
 export async function getAllTiles(req, res) {
   try {
-    let tiles = await Tile.find({});
-    if (!tiles) return res.status(404).json({ message: "Tiles not found" });
+    // Mongo
+    // let tiles = await Tile.find({});
+    // if (!tiles) return res.status(404).json({ message: "Tiles not found" });
+    // res.json(tiles);
+
+    // Salesforce
+    const conn = await sfConnection();
+    const query = 'SELECT Id, Name__c, URL__c FROM Tile__c';
+    const result = await conn.query(query);
+     if (result.records.length === 0) {
+      return res.status(404).json({ message: "Tiles not found" });
+    }
+     const tiles = result.records.map(tile => ({
+      id: tile.Id,
+      name: tile.name__c,
+      url: tile.url__c
+    }));
+    
     res.json(tiles);
   } catch (err) {
     res.status(500).json({ message: err.message });

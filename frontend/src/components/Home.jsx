@@ -14,7 +14,7 @@ const Home = () => {
     const fetchTiles = async () => {
       try {
         if (userData) {
-          const audienceId = JSON.parse(userData).audience._id;
+          const audienceId = JSON.parse(userData).Audience;
           const response = await axios.get(
             `${apiUrl}/auth/tiles/${audienceId}`,
             {
@@ -23,7 +23,7 @@ const Home = () => {
               },
             }
           );
-          setTiles(response.data.tiles);
+          setTiles(response.data);
         }
       } catch (error) {
         if (error.response && error.response.status === 401) {
@@ -42,7 +42,7 @@ const Home = () => {
       {tiles && tiles.length > 1 ? (
         <Row className="mt-3">
           {tiles.map((tile) => (
-            <Col md={4} className="mt-3" key={tile._id}>
+            <Col md={4} className="mt-3" key={tile.id}>
               <Card style={{ minHeight: "10rem" }}>
                 <Card.Body className="text-center align-content-center">
                   <h4>{tile.name}</h4>
@@ -55,7 +55,7 @@ const Home = () => {
       ) : (
         <Row className="mt-3">
           {tiles.map((tile) => (
-            <Navigate key={tile._id} to={tile.url} />
+            <Navigate key={tile.id} to={tile.url} />
           ))}
         </Row>
       )}
