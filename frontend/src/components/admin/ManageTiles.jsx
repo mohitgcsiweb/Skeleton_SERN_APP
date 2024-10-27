@@ -83,19 +83,35 @@ const ManageTiles = () => {
     }
   };
 
-  const handleTileChange = async (e) => {
-    const tile = e.target.value;
-    audienceTiles.some(({ _id }) => _id === JSON.parse(tile)._id)
-      ? setAudienceTiles(
-          audienceTiles.filter((t) => t._id !== JSON.parse(tile)._id)
-        )
-      : setAudienceTiles([...audienceTiles, JSON.parse(tile)]);
+  const handleTileChange = (e) => {
+    const tile = JSON.parse(e.target.value);
+    const tileId = tile.tileId || tile.id; // This will handle both pre-existing and newly added tiles consistently
+
+    setAudienceTiles((prevTiles) => {
+      // Check if the tile is already included in the audienceTiles using both `id` and `tileId`
+      const tileExists = prevTiles.some(
+        (t) => t.id === tileId || t.tileId === tileId
+      );
+
+      let newTiles;
+      if (tileExists) {
+        // Remove the tile if it exists (uncheck scenario)
+        newTiles = prevTiles.filter(
+          (t) => t.id !== tileId && t.tileId !== tileId
+        );
+      } else {
+        // Add the tile if it does not exist (check scenario)
+        newTiles = [...prevTiles, { ...tile, tileId: tileId }];
+      }
+
+      return newTiles;
+    });
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
     try {
-      const tileIds = audienceTiles.map((a) => a._id);
+      const tileIds = audienceTiles.map((a) => a.tileId);
       const response = await axios.put(
         `${apiUrl}/admin/audiences/${selectedAudienceId}`,
         { tiles: tileIds },

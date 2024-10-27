@@ -356,8 +356,31 @@ export async function updateAudience(req, res) {
       });
     }
 
-    res.json({ message: "Audience updated successfully" });
+     // Manage tile associations if there are tiles provided in the request
+        if (tiles) {
+            const currentTilesQuery = `SELECT Id, Tile__c FROM AudienceTile__c WHERE Audience__c = '${req.params.id}'`;
+            const currentTilesResult = await conn.query(currentTilesQuery);
+            const currentTileIds = new Set(currentTilesResult.records.map(rec => rec.Tile__c));
 
+            const newTileIds = new Set(tiles);
+            const tilesToAdd = Array.from(newTileIds).filter(id => !currentTileIds.has(id));
+            const tilesToRemoveIds = currentTilesResult.records.filter(rec => !newTileIds.has(rec.Tile__c)).map(rec => rec.Id);
+
+            // Create new associations
+            for (let tileId of tilesToAdd) {
+                await conn.sobject("AudienceTile__c").create({
+                    Audience__c: req.params.id,
+                    Tile__c: tileId
+                });
+            }
+
+            // Remove old associations
+            for (let tileToRemoveId of tilesToRemoveIds) {
+                await conn.sobject("AudienceTile__c").destroy(tileToRemoveId);
+            }
+        }
+
+    res.json({ message: "Audience updated successfully" });
 
   } catch (err) {
     res.status(500).json({ message: err.message });
