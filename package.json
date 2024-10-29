@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "engines": {
-        "node": "^20.16.0",
-        "npm": "^10.8.2"
+    "node": "^20.16.0",
+    "npm": "^10.8.2"
   },
   "scripts": {
     "install-server": "cd backend && npm install",
@@ -41,6 +41,8 @@
   },
   "homepage": "https://github.com/gcsi-dev/skeleton-mern-app#readme",
   "dependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "datatables.net-dt": "^2.1.8",
+    "datatables.net-react": "^1.0.0"
   }
 }
