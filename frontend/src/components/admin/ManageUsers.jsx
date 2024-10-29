@@ -31,10 +31,6 @@ const ManageUsers = () => {
   });
   const [selectedUser, setSelectedUser] = useState(null);
   const [showModal, setShowModal] = useState(false);
-
-  // Mongo
-  // const userId = JSON.parse(localStorage.getItem("userData"))._id;
-  // Salesforce
   const userId = JSON.parse(localStorage.getItem("userData")).id;
 
   let options = [];

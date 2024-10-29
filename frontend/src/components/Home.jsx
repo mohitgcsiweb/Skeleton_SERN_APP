@@ -14,23 +14,22 @@ const Home = () => {
     const fetchTiles = async () => {
       try {
         if (userData) {
-          const audienceId = JSON.parse(userData).Audience;
-          const response = await axios.get(
-            `${apiUrl}/auth/tiles/${audienceId}`,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            }
-          );
-          setTiles(response.data);
+          const parsedUserData = JSON.parse(userData);
+          const localTilesString = parsedUserData.Tiles;
+
+          const localTiles = localTilesString
+            .split(",")
+            .map((tileName, index) => ({
+              id: index + 1,
+              name: tileName.trim(),
+              url: `/${tileName.trim().toLowerCase().replace(/\s+/g, "")}`,
+            }));
+
+          setTiles(localTiles);
         }
       } catch (error) {
-        if (error.response && error.response.status === 401) {
-          navigate("/logout");
-        } else {
-          toast.error(error.response.data.message || "Fetching tiles failed");
-        }
+        console.error("Error parsing userData or setting Tiles:", error);
+        toast.error("Error fetching local tiles");
       }
     };
 

@@ -75,6 +75,11 @@ export async function login(req, res) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
+    const AudienceId = user.Audience__c;
+    const queryAudience = `SELECT Tiles__c FROM Audience__c WHERE Id = '${AudienceId}' LIMIT 1`;
+    const resultAudience = await conn.query(queryAudience);
+    const userAudience = resultAudience.records[0];
+
     const lastLoginUpdate = await conn.sobject("Portal_User__c").update({
       Id: user.Id,
       lastLogin__c: new Date().toISOString(),
@@ -94,6 +99,7 @@ export async function login(req, res) {
         isMfaEnabled: user.isMfaEnabled__c,
         Audience: user.Audience__c,
         mfaSecret: user.mfaSecret__c,
+        Tiles: userAudience.Tiles__c,
       },
       message: "Login successful",
     });
@@ -151,19 +157,6 @@ export async function setPassword(req, res) {
     }
 
     const decoded = verify(token, resetSecret);
-    // const user = await User.findOne({
-    //   _id: decoded.id,
-    //   email: email,
-    //   resetToken: token,
-    // });
-    // if (!user)
-    //   return res.status(404).json({
-    //     message: "Token Expired. Please contact admin for more information.",
-    //   });
-
-    // user.password = newPassword;
-    // user.resetToken = "";
-    // await user.save();
 
     // Salesforce connection
     const conn = await sfConnection();
@@ -197,21 +190,6 @@ export async function setPassword(req, res) {
 export async function forgotPassword(req, res) {
   const { email } = req.body;
   try {
-    // MongoDB
-    // const user = await User.findOne({ email });
-    // if (!user) return res.status(404).json({ message: "User not found" });
-    // const resetToken = sign({ id: user._id }, resetSecret, {
-    //   expiresIn: "1h",
-    // });
-    // await sendEmail(
-    //   email,
-    //   "noreply@gcsiweb.com",
-    //   "GCS App Password Reset",
-    //   `Click the link to reset your password: ${url}/reset-password?token=${resetToken}`
-    // );
-    // res.json({ message: "Check your email for reset password link" });
-
-    // Salesforce connection
     const conn = await sfConnection();
     const query = `SELECT Id FROM Portal_User__c WHERE Contact__r.Email = '${email}' LIMIT 1`;
     const result = await conn.query(query);
@@ -259,15 +237,6 @@ export async function resetPassword(req, res) {
         .json({ message: "Password length should be at least 8" });
     }
     const decoded = verify(token, resetSecret);
-
-    // MongoDB
-    // const user = await User.findById(decoded.id);
-    // if (!user) return res.status(404).json({ message: "User not found" });
-    // user.password = newPassword;
-    // user.resetToken = "";
-    // await user.save();
-
-    // Salesforce connection
     const conn = await sfConnection();
     const query = `SELECT Id FROM Portal_User__c WHERE Id = '${decoded.id}' AND resetToken__c = '${token}' LIMIT 1`;
     const result = await conn.query(query);
@@ -308,12 +277,6 @@ export async function manageProfile(req, res) {
 
 export async function verifySession(req, res) {
   try {
-    //Mongo
-    // const user = await User.findById(req.params.id).populate("audience");
-    // if (!user) return res.status(404).json({ message: "User not found" });
-    // res.json({ userData: user });
-
-    // Salesforce
     const conn = await sfConnection();
     const query = `
       SELECT Id, Contact__r.FirstName, Contact__r.Name, Contact__r.LastName, Contact__r.Email, isActive__c,
@@ -349,19 +312,11 @@ export async function verifySession(req, res) {
 
 export async function getTilesByAudienceId(req, res) {
   try {
-    // Mongo
-    // let tiles = await Audience.findOne({ _id: req.params.audienceId }).populate(
-    //   "tiles"
-    // );
-    // if (!tiles) return res.status(404).json({ message: "Tiles not found" });
-    // res.json(tiles);
-
-    // Salesforce
-      const conn = await sfConnection();
-      const query = `
-      SELECT Id, Tile__r.name__c, Tile__r.url__c, Audience__r.isAdmin__c, Tile__c
-      FROM AudienceTile__c
-      WHERE Audience__c = '${req.params.audienceId}'
+    const conn = await sfConnection();
+    const query = `
+      SELECT Tiles__c
+      FROM Audience__c
+      WHERE Id = '${req.params.audienceId}'
     `;
 
     const result = await conn.query(query);
@@ -370,14 +325,19 @@ export async function getTilesByAudienceId(req, res) {
       return res.status(404).json({ message: "Tiles not found" });
     }
 
-    const tiles = result.records.map(record => ({
-      id: record.Id,
-      name: record.Tile__r.name__c,
-      url: record.Tile__r.url__c,
-      tileId: record.Tile__c
-    }));
+    const user = result.records[0];
+    const tilesString = user.Tiles__c;
 
-    res.json(tiles);
+    if (tilesString) {
+      const tiles = tilesString.split(",").map((tileName, index) => ({
+        id: index + 1,
+        name: tileName.trim(),
+        url: `/${tileName.trim().toLowerCase().replace(/\s+/g, "")}`,
+      }));
+      res.json(tiles);
+    } else {
+      res.status(404).json({ message: "Tiles not found" });
+    }
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

@@ -11,8 +11,6 @@ import {
 import authenticate from "../middleware/authMiddleware.js";
 const router = Router();
 
-// Manage User Profile
-//Salesforce
 router.get("/verify-session/:id", verifySession);
 
 // Login
@@ -22,20 +20,12 @@ router.post("/login", login);
 //Verify MFA
 router.post("/verify-mfa", verifyMFA);
 
-// Set Password
-//Salesforce
 router.post("/set-password", setPassword);
 
-// Forgot Password
-//Salesforce
 router.post("/forgot-password", forgotPassword);
 
-// Reset Password
-//Salesforce
 router.post("/reset-password", resetPassword);
 
-// Get tiles by audience Id
-//Salesforce
 router.get("/tiles/:audienceId", authenticate, getTilesByAudienceId);
 
 export default router;

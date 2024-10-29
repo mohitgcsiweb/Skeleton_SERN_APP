@@ -29,7 +29,6 @@ const Login = () => {
 
   function successfulLogin(response) {
     login(response.data.token);
-    console.log("In suicccs login");
     localStorage.setItem("userData", JSON.stringify(response.data.userData));
     navigate("/");
     // const userName = response.data.userData.userName; //Mongo

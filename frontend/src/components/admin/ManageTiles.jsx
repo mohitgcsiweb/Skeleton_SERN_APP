@@ -13,6 +13,7 @@ const ManageTiles = () => {
   const [tiles, setTiles] = useState([]);
   const [audienceTiles, setAudienceTiles] = useState([]);
   const [selectedAudienceIsAdmin, setSelectedAudienceIsAdmin] = useState(false);
+  const userData = localStorage.getItem("userData");
   let options = [];
   audiences.map((audience) =>
     options.push({ value: audience._id, label: audience.role })
@@ -25,6 +26,7 @@ const ManageTiles = () => {
         const response = await axios.get(`${apiUrl}/admin/audiences`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
+
         setAudiences(response.data);
       } catch (error) {
         if (error.response && error.response.status === 401) {
@@ -38,10 +40,14 @@ const ManageTiles = () => {
     };
     const fetchTiles = async () => {
       try {
-        const response = await axios.get(`${apiUrl}/admin/tiles`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-        setTiles(response.data);
+        const staticTiles = [
+          { id: 1, name: "App 1", url: "/app1" },
+          { id: 2, name: "App 2", url: "/app2" },
+          { id: 3, name: "App 3", url: "/app3" },
+        ];
+
+        // console.log("Set Tiles:", staticTiles);
+        setTiles(staticTiles);
       } catch (error) {
         if (error.response && error.response.status === 401) {
           navigate("/logout");
@@ -59,12 +65,16 @@ const ManageTiles = () => {
     try {
       if (e) {
         const audienceId = e.value;
+
         setSelectedAudience({ value: audienceId, label: e.label });
         setSelectedAudienceId(audienceId);
         const response = await axios.get(`${apiUrl}/auth/tiles/${audienceId}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
+
+        // console.log("Set AudienceTile", response.data);
         setAudienceTiles(response.data);
+
         setSelectedAudienceIsAdmin(
           audiences.find((a) => a._id === audienceId)?.isAdmin || false
         );
@@ -85,25 +95,19 @@ const ManageTiles = () => {
 
   const handleTileChange = (e) => {
     const tile = JSON.parse(e.target.value);
-    const tileId = tile.tileId || tile.id; // This will handle both pre-existing and newly added tiles consistently
+    const tileName = tile.name;
 
     setAudienceTiles((prevTiles) => {
-      // Check if the tile is already included in the audienceTiles using both `id` and `tileId`
-      const tileExists = prevTiles.some(
-        (t) => t.id === tileId || t.tileId === tileId
-      );
+      const tileExists = prevTiles.some((t) => t.name === tileName);
 
       let newTiles;
       if (tileExists) {
-        // Remove the tile if it exists (uncheck scenario)
-        newTiles = prevTiles.filter(
-          (t) => t.id !== tileId && t.tileId !== tileId
-        );
+        newTiles = prevTiles.filter((t) => t.name !== tileName);
       } else {
-        // Add the tile if it does not exist (check scenario)
-        newTiles = [...prevTiles, { ...tile, tileId: tileId }];
+        newTiles = [...prevTiles, { ...tile }];
       }
 
+      // console.log("newtiles", newTiles);
       return newTiles;
     });
   };
@@ -111,10 +115,12 @@ const ManageTiles = () => {
   const handleSave = async (e) => {
     e.preventDefault();
     try {
-      const tileIds = audienceTiles.map((a) => a.tileId);
+      const tileName = audienceTiles.map((a) => a.name);
+      // console.log("tileIds", tileName);
       const response = await axios.put(
         `${apiUrl}/admin/audiences/${selectedAudienceId}`,
-        { tiles: tileIds },
+        { tiles: tileName },
+
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }
@@ -153,18 +159,18 @@ const ManageTiles = () => {
       </Card>
       {selectedAudienceId && (
         <Card className="mt-3">
-          <Card.Header>TIles List</Card.Header>
+          <Card.Header>Tiles List</Card.Header>
           <Card.Body>
             <Form>
               <Form.Group className="mb-3" controlId="tile">
                 {tiles.map((tile) => (
-                  <div key={tile.id} className="mb-3">
+                  <div key={tile.name} className="mb-3">
                     <Form.Check
                       type="checkbox"
-                      id={tile.id}
+                      id={tile.name}
                       value={JSON.stringify(tile)}
                       checked={audienceTiles.some(
-                        ({ tileId }) => tileId === tile.id
+                        ({ name }) => name === tile.name
                       )}
                       label={tile.name}
                       onChange={handleTileChange}

@@ -11,25 +11,6 @@ export async function createUser(req, res) {
   const { newUser } = req.body;
   console.log(req.body);
   try {
-    // const user = new User(newUser);
-    // user.isActive = true;
-    // user.isMfaEnabled = false;
-    // user.mfaSecret = "";
-    // await user.save();
-    // const resetToken = sign({ id: user._id }, resetSecret);
-    // await sendEmail(
-    //   newUser.email,
-    //   "noreply@gcsiweb.com",
-    //   "New Portal Account Created",
-    //   `A new account has been created for you with email as: ${user.email}. Click this <a target="_blank" href="${url}/set-password?token=${resetToken}">link</a> to set your password.`
-    // );
-    // await User.findByIdAndUpdate(
-    //   user._id,
-    //   { resetToken: resetToken },
-    //   { new: true }
-    // );
-
-    // Salesforce
     const conn = await sfConnection();
     if (newUser.email) {
       let accountId;
@@ -96,12 +77,6 @@ export async function createUser(req, res) {
 
 export async function getAllUsers(req, res) {
   try {
-    //Mongo
-    // let users = await User.find({}).populate("audience");
-    // if (!users) return res.status(404).json({ message: "Users not found" });
-    // res.json(users);
-
-    //Salesforce
     const conn = await sfConnection();
 
     const query = `
@@ -141,35 +116,8 @@ export async function getAllUsers(req, res) {
 export async function updateUser(req, res) {
   const { updatedUser } = req.body;
   const userId = updatedUser.id;
-  // console.log(updatedUser);
+
   try {
-    // Mongo Code Below
-
-    // const user = await User.findById(req.params.id).populate("audience");
-    // if (!user) return res.status(404).json({ message: "User not found" });
-    // let users = await User.find({}).populate("audience");
-    // users = users.filter((user) => user.audience.isAdmin);
-    // if (updatedUser && user.audience.isAdmin && users.length > 1) {
-    //   user.userName = updatedUser.userName;
-    //   user.isActive = updatedUser.isActive;
-    //   user.audience = new Types.ObjectId(updatedUser.audience);
-    //   user.isMfaEnabled = updatedUser.isMfaEnabled;
-    //   user.mfaSecret = updatedUser.isMfaEnabled ? user.mfaSecret : "";
-    // } else if (updatedUser && user.audience.isAdmin && users.length <= 1) {
-    //   return res.status(500).json({
-    //     message: "User cannot be modified since it is an only admin left",
-    //   });
-    // } else if (updatedUser && !user.audience.isAdmin) {
-    //   user.userName = updatedUser.userName;
-    //   user.isActive = updatedUser.isActive;
-    //   user.audience = new Types.ObjectId(updatedUser.audience);
-    //   user.isMfaEnabled = updatedUser.isMfaEnabled;
-    //   user.mfaSecret = updatedUser.isMfaEnabled ? user.mfaSecret : "";
-    // }
-    // await user.save();
-
-    // Salesforce code Below
-
     const conn = await sfConnection();
 
     // Retrieve the existing Portal User
@@ -230,39 +178,30 @@ export async function createAudience(req, res) {
   try {
     const role = newRole.role;
 
-    //MongoDB
-    // let audience = await Audience.findOne({
-    //   role: { $regex: new RegExp(role, "i") },
-    // });
-    // if (audience) {
-    //   res.status(302).json({ message: "Audience already present" });
-    // } else {
-    //   audience = new Audience(newRole);
-    //   await audience.save();
-    //   res.status(201).json({ message: "Audience created successfully" });
-    // }
-
-
-    //Salesforce
     const conn = await sfConnection();
 
     const query = `SELECT Id, Role__c FROM Audience__c WHERE Role__c = '${role}'`;
     const result = await conn.query(query);
 
-     if (result.totalSize > 0) {
+    if (result.totalSize > 0) {
       return res.status(302).json({ message: "Audience already present" });
     } else {
       const newAudience = {
         Role__c: role,
-        isAdmin__c: role.toLowerCase() === "admin", 
-        isActive__c: newRole.isActive !== undefined ? newRole.isActive : true
+        isAdmin__c: role.toLowerCase() === "admin",
+        isActive__c: newRole.isActive !== undefined ? newRole.isActive : true,
       };
 
-    const createdAudience = await conn.sobject("Audience__c").create(newAudience);
+      const createdAudience = await conn
+        .sobject("Audience__c")
+        .create(newAudience);
       if (createdAudience.success) {
-        res.status(201).json({ message: "Audience created successfully", id: createdAudience.id });
+        res.status(201).json({
+          message: "Audience created successfully",
+          id: createdAudience.id,
+        });
       } else {
-        throw new Error('Failed to create audience in Salesforce');
+        throw new Error("Failed to create audience in Salesforce");
       }
     }
   } catch (err) {
@@ -272,15 +211,10 @@ export async function createAudience(req, res) {
 
 export async function getAllAudiences(req, res) {
   try {
-    // Mongo
-    // let audiences = await Audience.find({});
-    // if (!audiences)
-    //   return res.status(404).json({ message: "Audiences not found" });
-    // res.json(audiences);
-
-    // Salesforce
     const conn = await sfConnection();
-    const result = await conn.query("SELECT Id, Role__c, isActive__c, isAdmin__c FROM Audience__c");
+    const result = await conn.query(
+      "SELECT Id, Role__c, isActive__c, isAdmin__c FROM Audience__c"
+    );
 
     if (!result.records || result.records.length === 0)
       return res.status(404).json({ message: "Audiences not found" });
@@ -299,38 +233,12 @@ export async function getAllAudiences(req, res) {
 }
 
 export async function updateAudience(req, res) {
-    console.log(req.body);
   const { tiles, updatedAudience } = req.body;
   try {
-    //Mongo Code below
-    // const audience = await Audience.findById(req.params.id).populate("tiles");
-    // if (!audience)
-    //   return res.status(404).json({ message: "Audience not found" });
-    // if (updatedAudience && !updatedAudience.isActive) {
-    //   const users = await User.find({ audience: req.params.id });
-    //   if (users.length > 0)
-    //     return res.status(500).json({
-    //       message:
-    //         "Audience cannot be deactivated since it has users associated with it. Please de-link the associated users before deactivating the audience.",
-    //     });
-    // }
-    // if (updatedAudience) {
-    //   audience.role = updatedAudience.role;
-    //   audience.isActive = updatedAudience.isActive;
-    //   audience.seeNotes = updatedAudience.seeNotes;
-    // }
-    // if (tiles) {
-    //   audience.tiles = tiles;
-    // }
-    // await audience.save();
-    // res.json({ message: "Audience updated successfully" });
-
-
-    //Salesforce code below
     const conn = await sfConnection();
-     const audienceQuery = `SELECT Id, Role__c, isActive__c FROM Audience__c WHERE Id = '${req.params.id}'`;
-     const audienceResult = await conn.query(audienceQuery);
-      if (audienceResult.totalSize === 0) {
+    const audienceQuery = `SELECT Id, Role__c, isActive__c FROM Audience__c WHERE Id = '${req.params.id}'`;
+    const audienceResult = await conn.query(audienceQuery);
+    if (audienceResult.totalSize === 0) {
       return res.status(404).json({ message: "Audience not found" });
     }
 
@@ -342,7 +250,8 @@ export async function updateAudience(req, res) {
       const userResult = await conn.query(userQuery);
       if (userResult.totalSize > 0) {
         return res.status(500).json({
-          message: "Audience cannot be deactivated since it has users associated with it. Please de-link the associated users before deactivating the audience.",
+          message:
+            "Audience cannot be deactivated since it has users associated with it. Please de-link the associated users before deactivating the audience.",
         });
       }
     }
@@ -352,62 +261,25 @@ export async function updateAudience(req, res) {
       await conn.sobject("Audience__c").update({
         Id: audience.Id,
         Role__c: updatedAudience.role,
-        isActive__c: updatedAudience.isActive
+        isActive__c: updatedAudience.isActive,
       });
     }
 
-     // Manage tile associations if there are tiles provided in the request
-        if (tiles) {
-            const currentTilesQuery = `SELECT Id, Tile__c FROM AudienceTile__c WHERE Audience__c = '${req.params.id}'`;
-            const currentTilesResult = await conn.query(currentTilesQuery);
-            const currentTileIds = new Set(currentTilesResult.records.map(rec => rec.Tile__c));
+    // Update tile field in Audience in Salesforce
+    if (tiles) {
+      const newTilesString = tiles.join(",");
 
-            const newTileIds = new Set(tiles);
-            const tilesToAdd = Array.from(newTileIds).filter(id => !currentTileIds.has(id));
-            const tilesToRemoveIds = currentTilesResult.records.filter(rec => !newTileIds.has(rec.Tile__c)).map(rec => rec.Id);
+      const updateResult = await conn.sobject("Audience__c").update({
+        Id: req.params.id,
+        Tiles__c: newTilesString,
+      });
 
-            // Create new associations
-            for (let tileId of tilesToAdd) {
-                await conn.sobject("AudienceTile__c").create({
-                    Audience__c: req.params.id,
-                    Tile__c: tileId
-                });
-            }
-
-            // Remove old associations
-            for (let tileToRemoveId of tilesToRemoveIds) {
-                await conn.sobject("AudienceTile__c").destroy(tileToRemoveId);
-            }
-        }
-
-    res.json({ message: "Audience updated successfully" });
-
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-}
-
-export async function getAllTiles(req, res) {
-  try {
-    // Mongo
-    // let tiles = await Tile.find({});
-    // if (!tiles) return res.status(404).json({ message: "Tiles not found" });
-    // res.json(tiles);
-
-    // Salesforce
-    const conn = await sfConnection();
-    const query = 'SELECT Id, Name__c, URL__c FROM Tile__c';
-    const result = await conn.query(query);
-     if (result.records.length === 0) {
-      return res.status(404).json({ message: "Tiles not found" });
+      if (updateResult.success) {
+        res.json({ message: "Audience updated successfully" });
+      } else {
+        throw new Error("Failed to update the audience");
+      }
     }
-     const tiles = result.records.map(tile => ({
-      id: tile.Id,
-      name: tile.name__c,
-      url: tile.url__c
-    }));
-    
-    res.json(tiles);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
