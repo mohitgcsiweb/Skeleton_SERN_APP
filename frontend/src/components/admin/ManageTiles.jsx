@@ -174,6 +174,7 @@ const ManageTiles = () => {
                       )}
                       label={tile.name}
                       onChange={handleTileChange}
+                      disabled={selectedAudienceIsAdmin}
                     />
                   </div>
                 ))}
