@@ -213,7 +213,7 @@ export async function getAllAudiences(req, res) {
   try {
     const conn = await sfConnection();
     const result = await conn.query(
-      "SELECT Id, Role__c, isActive__c, isAdmin__c FROM Audience__c"
+      "SELECT Id, Role__c, isActive__c, isAdmin__c FROM Audience__c WHERE isActive__c = true"
     );
 
     if (!result.records || result.records.length === 0)
@@ -263,6 +263,8 @@ export async function updateAudience(req, res) {
         Role__c: updatedAudience.role,
         isActive__c: updatedAudience.isActive,
       });
+
+      res.json({ message: "Audience updated successfully" });
     }
 
     // Update tile field in Audience in Salesforce

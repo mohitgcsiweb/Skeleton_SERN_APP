@@ -59,7 +59,9 @@ const Login = () => {
         password,
         token,
       });
+      console.log("Handlesubmit", response.data);
       if (response.data.isMfaEnabled) {
+        console.log("In mfsEnabled");
         setMfaSecret(response.data.mfaSecret);
         setSecret(response.data.secret);
         setQrCodeUrl(response.data.qrCodeUrl);
@@ -80,6 +82,7 @@ const Login = () => {
         secret,
         token,
       });
+      console.log("HandleMFA", response.data);
       successfulLogin(response);
     } catch (error) {
       toast.error(error.response.data.message || "MFA verification failed");
@@ -89,128 +92,144 @@ const Login = () => {
   return (
     <Container className="d-grid justify-content-center">
       <img alt="" src="../../images/gcs.png" className="mx-auto d-block w-50" />
-      {!mfaEnabled ? (
-        <Card style={{ width: "32rem" }}>
-          <Card.Header>Login</Card.Header>
-          <Card.Body>
-            <Form onSubmit={handleSubmit}>
-              <Form.Group className="mb-3">
-                <Form.Label htmlFor="email">Email</Form.Label>
-                <Form.Control
-                  type="email"
-                  id="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="on"
-                  required
-                />
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label htmlFor="password">Password</Form.Label>
-                <InputGroup className="mb-3">
-                  <Form.Control
-                    type={passwordType}
-                    id="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="on"
-                    required
-                  />
-                  <InputGroup.Text onClick={clickHandler}>
-                    {showPass ? <Eye /> : <EyeSlashFill />}
-                  </InputGroup.Text>
-                </InputGroup>
-              </Form.Group>
-              <Stack direction="horizontal" gap={3} className="mb-3 d-grid">
-                <Button type="submit" className="col-md btn-block custom-btn">
-                  Login
-                </Button>
-                <Button
-                  as={Link}
-                  to="/forgot-password"
-                  className="col-md btn-block custom-btn"
-                >
-                  Forgot Password
-                </Button>
-              </Stack>
-            </Form>
-          </Card.Body>
-        </Card>
-      ) : mfaSecret !== "" ? (
-        <Card className="text-center" style={{ width: "24rem" }}>
-          <Card.Header>Login</Card.Header>
-          <Card.Body>
-            <Form onSubmit={handleMfaVerify}>
-              <Form.Group className="mb-3" controlId="token">
-                <Form.Label>MFA Token</Form.Label>
-                <Form.Control
-                  type="text"
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  required
-                />
-              </Form.Group>
-              <Stack direction="horizontal" gap={3} className="d-grid">
-                <Button type="submit" className="col-md btn-block custom-btn">
-                  Verify MFA
-                </Button>
-                <Button
-                  as={Link}
-                  to="/"
-                  className="col-md btn-block custom-btn"
-                >
-                  Cancel
-                </Button>
-              </Stack>
-            </Form>
-          </Card.Body>
-        </Card>
-      ) : (
-        <Card className="text-center" style={{ width: "24rem" }}>
-          <Card.Header>Login</Card.Header>
-          <Card.Body>
-            <Stack className="col-md">
-              <p>
-                <b>Scan QR code below:</b>
-              </p>
-              {qrCodeUrl && <img src={qrCodeUrl} alt="MFA QR Code" />}
-            </Stack>
-            <Stack className="col-md">
-              {secret && (
-                <p>
-                  <b>Your MFA Setup Key:</b> {secret}
-                </p>
-              )}
-            </Stack>
-            <Form onSubmit={handleMfaVerify}>
-              <Form.Group controlId="token">
-                <Form.Label>Enter MFA Token Generated</Form.Label>
-                <Form.Control
-                  type="text"
-                  placeholder="MFA Token"
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  required
-                />
-              </Form.Group>
-              <Stack direction="horizontal" gap={3} className="d-grid mt-3">
-                <Button type="submit" className="col-md btn-block custom-btn">
-                  Verify MFA
-                </Button>
-                <Button
-                  as={Link}
-                  to="/"
-                  className="col-md btn-block custom-btn"
-                >
-                  Cancel
-                </Button>
-              </Stack>
-            </Form>
-          </Card.Body>
-        </Card>
-      )}
+      {!mfaEnabled
+        ? console.log("Rendering Login Form") || (
+            //
+            <Card style={{ width: "32rem" }}>
+              <Card.Header>Login</Card.Header>
+              <Card.Body>
+                <Form onSubmit={handleSubmit}>
+                  <Form.Group className="mb-3">
+                    <Form.Label htmlFor="email">Email</Form.Label>
+                    <Form.Control
+                      type="email"
+                      id="email"
+                      placeholder="Email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="on"
+                      required
+                    />
+                  </Form.Group>
+                  <Form.Group className="mb-3">
+                    <Form.Label htmlFor="password">Password</Form.Label>
+                    <InputGroup className="mb-3">
+                      <Form.Control
+                        type={passwordType}
+                        id="password"
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        autoComplete="on"
+                        required
+                      />
+                      <InputGroup.Text onClick={clickHandler}>
+                        {showPass ? <Eye /> : <EyeSlashFill />}
+                      </InputGroup.Text>
+                    </InputGroup>
+                  </Form.Group>
+                  <Stack direction="horizontal" gap={3} className="mb-3 d-grid">
+                    <Button
+                      type="submit"
+                      className="col-md btn-block custom-btn"
+                    >
+                      Login
+                    </Button>
+                    <Button
+                      as={Link}
+                      to="/forgot-password"
+                      className="col-md btn-block custom-btn"
+                    >
+                      Forgot Password
+                    </Button>
+                  </Stack>
+                </Form>
+              </Card.Body>
+            </Card>
+          )
+        : mfaSecret !== ""
+        ? console.log("Rendering MFA Verification Form") || (
+            //
+            <Card className="text-center" style={{ width: "24rem" }}>
+              <Card.Header>Login</Card.Header>
+              <Card.Body>
+                <Form onSubmit={handleMfaVerify}>
+                  <Form.Group className="mb-3" controlId="token">
+                    <Form.Label>MFA Token</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={token}
+                      onChange={(e) => setToken(e.target.value)}
+                      required
+                    />
+                  </Form.Group>
+                  <Stack direction="horizontal" gap={3} className="d-grid">
+                    <Button
+                      type="submit"
+                      className="col-md btn-block custom-btn"
+                    >
+                      Verify MFA
+                    </Button>
+                    <Button
+                      as={Link}
+                      to="/"
+                      className="col-md btn-block custom-btn"
+                    >
+                      Cancel
+                    </Button>
+                  </Stack>
+                </Form>
+              </Card.Body>
+            </Card>
+          )
+        : console.log("Rendering MFA Setup") || (
+            //
+            <Card className="text-center" style={{ width: "24rem" }}>
+              <Card.Header>Login</Card.Header>
+              <Card.Body>
+                <Stack className="col-md">
+                  <p>
+                    <b>Scan QR code below:</b>
+                  </p>
+                  {qrCodeUrl && <img src={qrCodeUrl} alt="MFA QR Code" />}
+                </Stack>
+                <Stack className="col-md">
+                  {secret && (
+                    <p>
+                      <b>Your MFA Setup Key:</b> {secret}
+                    </p>
+                  )}
+                </Stack>
+                <Form onSubmit={handleMfaVerify}>
+                  <Form.Group controlId="token">
+                    <Form.Label>Enter MFA Token Generated</Form.Label>
+                    <Form.Control
+                      type="text"
+                      placeholder="MFA Token"
+                      value={token}
+                      onChange={(e) => setToken(e.target.value)}
+                      required
+                    />
+                  </Form.Group>
+                  <Stack direction="horizontal" gap={3} className="d-grid mt-3">
+                    <Button
+                      type="submit"
+                      className="col-md btn-block custom-btn"
+                    >
+                      Verify MFA
+                    </Button>
+                    <Button
+                      as={Link}
+                      to="/"
+                      className="col-md btn-block custom-btn"
+                    >
+                      Cancel
+                    </Button>
+                  </Stack>
+                </Form>
+              </Card.Body>
+            </Card>
+          )}
     </Container>
   );
 };
