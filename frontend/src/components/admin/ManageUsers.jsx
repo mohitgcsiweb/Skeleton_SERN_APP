@@ -71,7 +71,11 @@ const ManageUsers = () => {
         const response = await axios.get(`${apiUrl}/admin/audiences`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
-        setAudiences(response.data);
+        // console.log("Audiences", response.data);
+        const activeAudiences = response.data.filter(
+          (audience) => audience.active
+        );
+        setAudiences(activeAudiences);
       } catch (error) {
         if (error.response && error.response.status === 401) {
           navigate("/logout");
@@ -88,7 +92,6 @@ const ManageUsers = () => {
         const response = await axios.get(`${apiUrl}/admin/users`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
-        console.log("Users fetched from the backend", response.data);
         setUsers(response.data);
       } catch (error) {
         if (error.response && error.response.status === 401) {

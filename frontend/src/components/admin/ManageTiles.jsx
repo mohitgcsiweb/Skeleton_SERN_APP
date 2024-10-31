@@ -13,10 +13,16 @@ const ManageTiles = () => {
   const [tiles, setTiles] = useState([]);
   const [audienceTiles, setAudienceTiles] = useState([]);
   const [selectedAudienceIsAdmin, setSelectedAudienceIsAdmin] = useState(false);
+  const [selectedAudienceIsNotActive, setSelectedAudienceIsNotActive] =
+    useState(false);
   const userData = localStorage.getItem("userData");
   let options = [];
   audiences.map((audience) =>
-    options.push({ value: audience._id, label: audience.role })
+    options.push({
+      value: audience._id,
+      label: audience.role,
+      active: audience.active,
+    })
   );
   const navigate = useNavigate();
 
@@ -27,6 +33,7 @@ const ManageTiles = () => {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
 
+        // console.log("Audiences", response.data);
         setAudiences(response.data);
       } catch (error) {
         if (error.response && error.response.status === 401) {
@@ -56,7 +63,6 @@ const ManageTiles = () => {
         }
       }
     };
-
     fetchAudiences();
     fetchTiles();
   }, []);
@@ -66,7 +72,12 @@ const ManageTiles = () => {
       if (e) {
         const audienceId = e.value;
 
-        setSelectedAudience({ value: audienceId, label: e.label });
+        setSelectedAudience({
+          value: audienceId,
+          label: e.label,
+          active: e.active,
+        });
+
         setSelectedAudienceId(audienceId);
         const response = await axios.get(`${apiUrl}/auth/tiles/${audienceId}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -77,6 +88,9 @@ const ManageTiles = () => {
 
         setSelectedAudienceIsAdmin(
           audiences.find((a) => a._id === audienceId)?.isAdmin || false
+        );
+        setSelectedAudienceIsNotActive(
+          audiences.find((a) => a._id === audienceId)?.active || false
         );
       } else {
         setSelectedAudienceId("");
@@ -174,12 +188,14 @@ const ManageTiles = () => {
                       )}
                       label={tile.name}
                       onChange={handleTileChange}
-                      disabled={selectedAudienceIsAdmin}
+                      disabled={
+                        selectedAudienceIsAdmin || !selectedAudienceIsNotActive
+                      }
                     />
                   </div>
                 ))}
               </Form.Group>
-              {!selectedAudienceIsAdmin ? (
+              {!selectedAudienceIsAdmin && selectedAudienceIsNotActive ? (
                 <Button
                   className="btn-block custom-btn col-md mt-3"
                   onClick={handleSave}
