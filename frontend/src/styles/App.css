@@ -1,3 +1,8 @@
+@import 'datatables.net-dt';
+@import 'datatables.net-buttons-dt';
+@import 'datatables.net-select-dt';
+@import 'datatables.net-responsive-dt';
+
 body {
     min-height: 100vh;
     background-color:rgba(108, 117, 125, 0.1);
@@ -22,4 +27,8 @@ div.card-header {
 .custom-btn {
   background-color: rgba(14, 41, 86, 1);
   color: white;
+}
+
+tfoot {
+  display: table-header-group;
 }

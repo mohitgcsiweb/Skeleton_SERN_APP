@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import axios from "axios";
 import {
   Button,
@@ -12,10 +12,17 @@ import {
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import EditAudienceModal from "./EditAudienceModal";
+import DataTable from "datatables.net-react";
+import DT from "datatables.net-dt";
+import "datatables.net-select-dt";
+import "datatables.net-responsive-dt";
+import "datatables.net-buttons-dt";
 import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-quartz.css";
 const apiUrl = import.meta.env.VITE_API_URL;
+
+DataTable.use(DT);
 
 const ManageAudiences = () => {
   const [audiences, setAudiences] = useState([]);
@@ -23,6 +30,8 @@ const ManageAudiences = () => {
   const [selectedAudience, setSelectedAudience] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
+  const tableRef = useRef(null);
+  const [tableInstance, setTableInstance] = useState(null);
 
   useEffect(() => {
     const fetchAudiences = async () => {
@@ -44,6 +53,94 @@ const ManageAudiences = () => {
 
     fetchAudiences();
   }, []);
+
+  useEffect(() => {
+    console.log("Audience passed to the table", audiences);
+    const loadDataTable = async () => {
+      const DataTable = (await import("datatables.net")).default;
+      if (audiences.length > 0) {
+        let table = new DataTable(tableRef.current, {
+          data: audiences,
+          columns: [
+            {
+              data: null,
+              render: DT.render.select(),
+            },
+            {
+              data: "role",
+              render: (data, type, row) => {
+                return data || "";
+              },
+            },
+            {
+              data: "isAdmin",
+              render: (data, type, row) => {
+                return data ? "Yes" : "No";
+              },
+            },
+            {
+              data: "active",
+              render: (data, type, row) => {
+                return data ? "Yes" : "No";
+              },
+            },
+          ],
+          retrieve: true,
+          select: {
+            style: "os",
+            selector: "td:first-child",
+          },
+          responsive: true,
+          paging: true,
+          layout: {
+            top2Start: "buttons",
+            topStart: "info",
+            topEnd: {
+              search: {
+                placeholder: "Search",
+              },
+            },
+            bottomStart: "pageLength",
+            bottomEnd: "paging",
+          },
+          buttons: [
+            {
+              extend: "selected",
+              text: "Edit",
+              action: function (e, dt, node, config) {
+                let data = dt.rows({ selected: true }).data()[0];
+                if (data.role === "Admin") {
+                  toast.error("Cannot be edited");
+                } else {
+                  handleEditClick(data);
+                }
+              },
+            },
+          ],
+          initComplete: function () {
+            const api = this.api();
+            api.columns().every(function () {
+              let column = this;
+              let title = column.footer().textContent;
+              if (title !== "") {
+                const input = document.createElement("input");
+                input.placeholder = title;
+                input.className = "form-control";
+                column.footer().replaceChildren(input);
+                input.addEventListener("keyup", () => {
+                  if (column.search() !== this.value) {
+                    column.search(input.value).draw();
+                  }
+                });
+              }
+            });
+          },
+        });
+        setTableInstance(table);
+      }
+    };
+    loadDataTable();
+  }, [audiences]);
 
   const handleCreateRoles = async (e) => {
     e.preventDefault();
@@ -99,6 +196,10 @@ const ManageAudiences = () => {
       });
       setAudiences(audiences.data);
       toast.success(response.data.message);
+      if (tableInstance) {
+        tableInstance.clear(); // Clear the table
+        tableInstance.rows.add(audiences.data).draw(); // Add new rows and redraw the table
+      }
     } catch (error) {
       handleClose();
       if (error.response && error.response.status === 401) {
@@ -109,50 +210,54 @@ const ManageAudiences = () => {
         });
         setAudiences(audiences.data);
         toast.error(error.response.data.message || "Update audience failed");
+        if (tableInstance) {
+          tableInstance.clear(); // Clear the table
+          tableInstance.rows.add(audiences.data).draw(); // Add new rows and redraw the table
+        }
       }
     }
   };
 
-  const colDefs = useMemo(() => {
-    return [
-      { field: "role", headerName: "Role" },
-      {
-        field: "isAdmin",
-        headerName: "Is Admin",
-        cellRenderer: (params) => (params.data.role === "Admin" ? "Yes" : "No"),
-        filter: false,
-      },
-      {
-        field: "active",
-        headerName: "Active Status",
-        cellRenderer: (params) => (params.value ? "Yes" : "No"),
-        filter: false,
-      },
-      {
-        field: "actions",
-        cellRenderer: (props) => {
-          return !props.data.isAdmin ? (
-            <Button
-              className="custom-btn mb-3"
-              onClick={() => handleEditClick(props.data)}
-            >
-              Edit
-            </Button>
-          ) : (
-            <></>
-          );
-        },
-        filter: false,
-      },
-    ];
-  });
+  // const colDefs = useMemo(() => {
+  //   return [
+  //     { field: "role", headerName: "Role" },
+  //     {
+  //       field: "isAdmin",
+  //       headerName: "Is Admin",
+  //       cellRenderer: (params) => (params.data.role === "Admin" ? "Yes" : "No"),
+  //       filter: false,
+  //     },
+  //     {
+  //       field: "active",
+  //       headerName: "Active Status",
+  //       cellRenderer: (params) => (params.value ? "Yes" : "No"),
+  //       filter: false,
+  //     },
+  //     {
+  //       field: "actions",
+  //       cellRenderer: (props) => {
+  //         return !props.data.isAdmin ? (
+  //           <Button
+  //             className="custom-btn mb-3"
+  //             onClick={() => handleEditClick(props.data)}
+  //           >
+  //             Edit
+  //           </Button>
+  //         ) : (
+  //           <></>
+  //         );
+  //       },
+  //       filter: false,
+  //     },
+  //   ];
+  // });
 
-  const defaultColDef = useMemo(() => {
-    return {
-      filter: "agTextColumnFilter",
-      floatingFilter: true,
-    };
-  }, []);
+  // const defaultColDef = useMemo(() => {
+  //   return {
+  //     filter: "agTextColumnFilter",
+  //     floatingFilter: true,
+  //   };
+  // }, []);
 
   return (
     <Container>
@@ -191,15 +296,29 @@ const ManageAudiences = () => {
       <Card className="mt-3">
         <Card.Header>Audiences List</Card.Header>
         <Card.Body>
-          <div className="ag-theme-quartz" style={{ height: 500 }}>
-            <AgGridReact
-              rowData={audiences}
-              columnDefs={colDefs}
-              defaultColDef={defaultColDef}
-              paginationAutoPageSize={true}
-              pagination={true}
-            />
-          </div>
+          <table
+            ref={tableRef}
+            className="display table table-sm table-bordered"
+            style={{ width: "100%" }}
+          >
+            <thead>
+              <tr>
+                <th></th>
+                <th>Audience</th>
+                <th>Admin</th>
+                <th>Active</th>
+              </tr>
+            </thead>
+            <tfoot>
+              <tr>
+                <th></th>
+                <th>Audience</th>
+                <th>Admin</th>
+                <th>Active</th>
+              </tr>
+            </tfoot>
+            <tbody></tbody>
+          </table>
         </Card.Body>
       </Card>
       {selectedAudience && (

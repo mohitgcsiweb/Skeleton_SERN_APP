@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import axios from "axios";
 import moment from "moment";
 import Select from "react-select";
@@ -14,10 +14,17 @@ import {
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import EditUserModal from "./EditUserModal";
-import { AgGridReact } from "ag-grid-react";
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-quartz.css";
+// import { AgGridReact } from "ag-grid-react";
+// import "ag-grid-community/styles/ag-grid.css";
+// import "ag-grid-community/styles/ag-theme-quartz.css";
+import DataTable from "datatables.net-react";
+import DT from "datatables.net-dt";
+import "datatables.net-select-dt";
+import "datatables.net-responsive-dt";
+import "datatables.net-buttons-dt";
 const apiUrl = import.meta.env.VITE_API_URL;
+
+DataTable.use(DT);
 
 const ManageUsers = () => {
   const [users, setUsers] = useState([]);
@@ -38,6 +45,8 @@ const ManageUsers = () => {
     options.push({ value: audience._id, label: audience.role })
   );
   const navigate = useNavigate();
+  const tableRef = useRef(null);
+  const [tableInstance, setTableInstance] = useState(null);
 
   useEffect(() => {
     const fetchAudiences = async () => {
@@ -62,6 +71,7 @@ const ManageUsers = () => {
         const response = await axios.get(`${apiUrl}/admin/users`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
+        console.log("Users fetched from the backend", response.data);
         setUsers(response.data);
       } catch (error) {
         if (error.response && error.response.status === 401) {
@@ -77,6 +87,107 @@ const ManageUsers = () => {
     fetchAudiences();
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    // console.log("users", users);
+    const loadDataTable = async () => {
+      const DataTable = (await import("datatables.net")).default;
+      if (users.length > 0) {
+        let table = new DataTable(tableRef.current, {
+          data: users,
+          columns: [
+            {
+              data: null,
+              render: DT.render.select(),
+            },
+            {
+              data: null,
+              render: (data, type, row) => {
+                const { firstName, lastName } = row.contact || {};
+                return `${firstName || ""} ${lastName || ""}`.trim();
+              },
+            },
+            {
+              data: null,
+              render: (data, type, row) => {
+                return row.contact?.email || "";
+              },
+            },
+            {
+              data: "lastLogin",
+              render: DT.render.datetime(),
+            },
+            {
+              data: "isMfaEnabled",
+              render: (data, type, row) => {
+                return data ? "Yes" : "No";
+              },
+            },
+            {
+              data: "isActive",
+              render: (data, type, row) => {
+                return data ? "Yes" : "No";
+              },
+            },
+            {
+              data: "audience.role",
+              render: (data, type, row) => {
+                return data || "";
+              },
+            },
+          ],
+          retrieve: true,
+          select: {
+            style: "os",
+            selector: "td:first-child",
+          },
+          responsive: true,
+          paging: true,
+          layout: {
+            top2Start: "buttons",
+            topStart: "info",
+            topEnd: {
+              search: {
+                placeholder: "Search",
+              },
+            },
+            bottomStart: "pageLength",
+            bottomEnd: "paging",
+          },
+          buttons: [
+            {
+              extend: "selected",
+              text: "Edit",
+              action: function (e, dt, node, config) {
+                let data = dt.rows({ selected: true }).data()[0];
+                handleEditClick(data);
+              },
+            },
+          ],
+          initComplete: function () {
+            const api = this.api();
+            api.columns().every(function () {
+              let column = this;
+              let title = column.footer().textContent;
+              if (title !== "") {
+                const input = document.createElement("input");
+                input.placeholder = title;
+                input.className = "form-control";
+                column.footer().replaceChildren(input);
+                input.addEventListener("keyup", () => {
+                  if (column.search() !== this.value) {
+                    column.search(input.value).draw();
+                  }
+                });
+              }
+            });
+          },
+        });
+        setTableInstance(table);
+      }
+    };
+    loadDataTable();
+  }, [users]);
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
@@ -126,7 +237,6 @@ const ManageUsers = () => {
 
   const handleUpdateUser = async (updatedUser) => {
     try {
-      console.log("Sending update for user ID:", updatedUser.id);
       const response = await axios.put(
         `${apiUrl}/admin/users/${updatedUser._id}`,
         { updatedUser },
@@ -143,6 +253,10 @@ const ManageUsers = () => {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
         setUsers(users.data);
+        if (tableInstance) {
+          tableInstance.clear();
+          tableInstance.rows.add(users.data).draw();
+        }
       }
     } catch (error) {
       handleClose();
@@ -154,74 +268,78 @@ const ManageUsers = () => {
         });
         setUsers(users.data);
         toast.error(error.response.data.message || "Update user failed");
+        if (tableInstance) {
+          tableInstance.clear();
+          tableInstance.rows.add(users.data).draw();
+        }
       }
     }
   };
 
-  const colDefs = useMemo(() => {
-    return [
-      {
-        field: "username",
-        headerName: "Username",
-        valueGetter: (params) =>
-          `${params.data.contact.firstName} ${params.data.contact.lastName}`,
-      },
-      {
-        field: "contact.email",
-        headerName: "Email",
-        valueGetter: (params) => params.data.contact.email,
-      },
-      {
-        field: "lastLogin",
-        headerName: "Last Login",
-        valueFormatter: (params) =>
-          params.value
-            ? moment(params.value).format("MM/DD/YYYY h:mm:ss a")
-            : "N/A",
-        filter: "agDateColumnFilter",
-      },
-      {
-        field: "isMfaEnabled",
-        headerName: "MFA Enabled",
-        cellRenderer: (params) => (params.value ? "Yes" : "No"),
-        filter: false,
-      },
-      {
-        field: "isActive",
-        headerName: "Active Status",
-        cellRenderer: (params) => (params.value ? "Yes" : "No"),
-      },
-      {
-        field: "audience.role",
-        headerName: "Role",
-        valueGetter: (params) => params.data.audience.role,
-      },
-      {
-        field: "actions",
-        cellRenderer: (props) => {
-          return (
-            <Button
-              className="custom-btn mb-3"
-              onClick={() => handleEditClick(props.data)}
-            >
-              Edit
-            </Button>
-          );
-        },
-        filter: false,
-      },
-    ];
-  });
+  // const colDefs = useMemo(() => {
+  //   return [
+  //     {
+  //       field: "username",
+  //       headerName: "Username",
+  //       valueGetter: (params) =>
+  //         `${params.data.contact.firstName} ${params.data.contact.lastName}`,
+  //     },
+  //     {
+  //       field: "contact.email",
+  //       headerName: "Email",
+  //       valueGetter: (params) => params.data.contact.email,
+  //     },
+  //     {
+  //       field: "lastLogin",
+  //       headerName: "Last Login",
+  //       valueFormatter: (params) =>
+  //         params.value
+  //           ? moment(params.value).format("MM/DD/YYYY h:mm:ss a")
+  //           : "N/A",
+  //       filter: "agDateColumnFilter",
+  //     },
+  //     {
+  //       field: "isMfaEnabled",
+  //       headerName: "MFA Enabled",
+  //       cellRenderer: (params) => (params.value ? "Yes" : "No"),
+  //       filter: false,
+  //     },
+  //     {
+  //       field: "isActive",
+  //       headerName: "Active Status",
+  //       cellRenderer: (params) => (params.value ? "Yes" : "No"),
+  //     },
+  //     {
+  //       field: "audience.role",
+  //       headerName: "Role",
+  //       valueGetter: (params) => params.data.audience.role,
+  //     },
+  //     {
+  //       field: "actions",
+  //       cellRenderer: (props) => {
+  //         return (
+  //           <Button
+  //             className="custom-btn mb-3"
+  //             onClick={() => handleEditClick(props.data)}
+  //           >
+  //             Edit
+  //           </Button>
+  //         );
+  //       },
+  //       filter: false,
+  //     },
+  //   ];
+  // });
 
-  const defaultColDef = useMemo(() => {
-    return {
-      filter: "agTextColumnFilter",
-      floatingFilter: true,
-      floatingFilter: true,
-      autoHeight: true,
-      resizable: true,
-    };
-  }, []);
+  // const defaultColDef = useMemo(() => {
+  //   return {
+  //     filter: "agTextColumnFilter",
+  //     floatingFilter: true,
+  //     floatingFilter: true,
+  //     autoHeight: true,
+  //     resizable: true,
+  //   };
+  // }, []);
 
   return (
     <Container>
@@ -300,15 +418,35 @@ const ManageUsers = () => {
       <Card className="mt-3">
         <Card.Header>Users List</Card.Header>
         <Card.Body>
-          <div className="ag-theme-quartz" style={{ height: 500 }}>
-            <AgGridReact
-              rowData={users}
-              columnDefs={colDefs}
-              defaultColDef={defaultColDef}
-              paginationAutoPageSize={true}
-              pagination={true}
-            />
-          </div>
+          <table
+            ref={tableRef}
+            className="display table table-sm table-bordered"
+            style={{ width: "100%" }}
+          >
+            <thead>
+              <tr>
+                <th></th>
+                <th>User Name</th>
+                <th>Email</th>
+                <th>Last Login</th>
+                <th>MFA Enable</th>
+                <th>Active</th>
+                <th>Audience</th>
+              </tr>
+            </thead>
+            <tfoot>
+              <tr>
+                <th></th>
+                <th>User Name</th>
+                <th>Email</th>
+                <th>Last Login</th>
+                <th>MFA Enable</th>
+                <th>Active</th>
+                <th>Audience</th>
+              </tr>
+            </tfoot>
+            <tbody></tbody>
+          </table>
         </Card.Body>
       </Card>
       {selectedUser && (
