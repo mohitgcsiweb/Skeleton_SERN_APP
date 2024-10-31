@@ -80,14 +80,112 @@ export async function login(req, res) {
     const resultAudience = await conn.query(queryAudience);
     const userAudience = resultAudience.records[0];
 
-    const lastLoginUpdate = await conn.sobject("Portal_User__c").update({
+    if (user.isMfaEnabled__c) {
+      if (user.mfaSecret__c === null) {
+        const secret = speakeasy.generateSecret({ length: 20 });
+        if (secret.otpauth_url) {
+          secret.otpauth_url = speakeasy.otpauthURL({
+            label: "GCS App",
+            secret: secret.ascii,
+          });
+        }
+
+        return new Promise(function (resolve, reject) {
+          QRCode.toDataURL(secret.otpauth_url, async function (err, url) {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(url);
+              res.json({
+                isMfaEnabled: user.isMfaEnabled__c,
+                mfaSecret: user.mfaSecret__c,
+                secret: secret.base32,
+                qrCodeUrl: url,
+              });
+            }
+          });
+        });
+      }
+      res.json({
+        isMfaEnabled: user.isMfaEnabled__c,
+        mfaSecret: user.mfaSecret__c,
+      });
+    } else {
+      await conn.sobject("Portal_User__c").update({
+        Id: user.Id,
+        lastLogin__c: new Date().toISOString(),
+      });
+
+      const jwtToken = jwt.sign({ id: user.Id }, jwtSecret, {
+        expiresIn: sessionTimeout,
+      });
+      res.json({
+        token: jwtToken,
+        userData: {
+          id: user.Id,
+          email: email,
+          isActive: user.isActive__c,
+          Password: user.Password__c,
+          resetToken: user.isMfaEnabled__c,
+          isMfaEnabled: user.isMfaEnabled__c,
+          Audience: user.Audience__c,
+          mfaSecret: user.mfaSecret__c,
+          Tiles: userAudience.Tiles__c,
+        },
+        message: "Login successful",
+      });
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: err.message });
+  }
+}
+
+export async function verifyMFA(req, res) {
+  const { email, secret, token } = req.body;
+  try {
+    const conn = await sfConnection();
+    const query = `SELECT Id, Password__c, isActive__c, Audience__c, mfaSecret__c, isMfaEnabled__c FROM Portal_User__c WHERE Contact_Email__c = '${email}' AND isActive__c = true LIMIT 1`;
+    const result = await conn.query(query);
+
+    if (result.totalSize === 0) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    const user = result.records[0];
+    const mfaSecret = secret || user.mfaSecret__c;
+
+    const verified = speakeasy.totp.verify({
+      secret: mfaSecret,
+      encoding: "base32",
+      token,
+    });
+
+    if (!verified) {
+      return res.status(401).json({ message: "Invalid MFA token" });
+    }
+
+    if (secret) {
+      await conn.sobject("Portal_User__c").update({
+        Id: user.Id,
+        mfaSecret__c: secret,
+      });
+    }
+
+    await conn.sobject("Portal_User__c").update({
       Id: user.Id,
       lastLogin__c: new Date().toISOString(),
     });
 
+    const AudienceId = user.Audience__c;
+    const queryAudience = `SELECT Tiles__c FROM Audience__c WHERE Id = '${AudienceId}' LIMIT 1`;
+    const resultAudience = await conn.query(queryAudience);
+    const userAudience = resultAudience.records[0];
+
     const jwtToken = jwt.sign({ id: user.Id }, jwtSecret, {
       expiresIn: sessionTimeout,
     });
+
     res.json({
       token: jwtToken,
       userData: {
@@ -101,36 +199,10 @@ export async function login(req, res) {
         mfaSecret: user.mfaSecret__c,
         Tiles: userAudience.Tiles__c,
       },
-      message: "Login successful",
+      message: "Login Successful",
     });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: err.message });
-  }
-}
-
-export async function verifyMFA(req, res) {
-  const { email, secret, token } = req.body;
-  try {
-    const user = await User.findOne({ email, isActive: true }).populate(
-      "audience"
-    );
-    if (!user) return res.status(400).json({ message: "User not found" });
-    const verified = speakeasy.totp.verify({
-      secret: secret || user.mfaSecret,
-      encoding: "base32",
-      token,
-    });
-    if (!verified)
-      return res.status(401).json({ message: "Invalid MFA token" });
-    const jwtToken = sign({ id: user._id }, jwtSecret, {
-      expiresIn: sessionTimeout,
-    });
-    if (secret) user.mfaSecret = secret;
-    user.lastLogin = Date.now();
-    await user.save();
-    res.json({ token: jwtToken, userData: user, message: "Login Successful" });
-  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.message });
   }
 }

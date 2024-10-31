@@ -59,9 +59,7 @@ const Login = () => {
         password,
         token,
       });
-      console.log("Handlesubmit", response.data);
       if (response.data.isMfaEnabled) {
-        console.log("In mfsEnabled");
         setMfaSecret(response.data.mfaSecret);
         setSecret(response.data.secret);
         setQrCodeUrl(response.data.qrCodeUrl);
@@ -147,8 +145,8 @@ const Login = () => {
               </Card.Body>
             </Card>
           )
-        : mfaSecret !== ""
-        ? console.log("Rendering MFA Verification Form") || (
+        : mfaSecret !== null
+        ? console.log("Rendering MFA Verification Form Without QR") || (
             //
             <Card className="text-center" style={{ width: "24rem" }}>
               <Card.Header>Login</Card.Header>
@@ -182,7 +180,7 @@ const Login = () => {
               </Card.Body>
             </Card>
           )
-        : console.log("Rendering MFA Setup") || (
+        : console.log("Rendering QR Code") || (
             //
             <Card className="text-center" style={{ width: "24rem" }}>
               <Card.Header>Login</Card.Header>
