@@ -15,53 +15,6 @@ const NUMBERS = /[0-9]/g;
 export async function login(req, res) {
   const { email, password } = req.body;
   try {
-    //Mongo
-    // const user = await User.findOne({ email, isActive: true }).populate(
-    //   "audience"
-    // );
-    // if (!user || !(await user.comparePassword(password))) {
-    //   return res.status(401).json({ message: "Invalid credentials" });
-    // }
-    // if (user.isMfaEnabled) {
-    //   if (user.mfaSecret === "") {
-    //     const secret = speakeasy.generateSecret({ length: 20 });
-    //     if (secret.otpauth_url) {
-    //       secret.otpauth_url = speakeasy.otpauthURL({
-    //         label: "GCS App",
-    //         secret: secret.ascii,
-    //       });
-    //     }
-    //     return new Promise(function (resolve, reject) {
-    //       QRCode.toDataURL(secret.otpauth_url, function (err, url) {
-    //         if (err) {
-    //           reject(err);
-    //         } else {
-    //           resolve(url);
-    //           res.json({
-    //             isMfaEnabled: user.isMfaEnabled,
-    //             mfaSecret: user.mfaSecret,
-    //             secret: secret.base32,
-    //             qrCodeUrl: url,
-    //           });
-    //         }
-    //       });
-    //     });
-    //   }
-    //   res.json({ isMfaEnabled: user.isMfaEnabled, mfaSecret: user.mfaSecret });
-    // } else {
-    //   const jwtToken = sign({ id: user._id }, jwtSecret, {
-    //     expiresIn: sessionTimeout,
-    //   });
-    //   user.lastLogin = Date.now();
-    //   await user.save();
-    //   res.json({
-    //     token: jwtToken,
-    //     userData: user,
-    //     message: "Login Successful",
-    //   });
-    // }
-
-    // Salesforce
     const conn = await sfConnection();
     const query = `SELECT Id, Password__c, isActive__c, Audience__c, mfaSecret__c, isMfaEnabled__c FROM Portal_User__c WHERE Contact_Email__c = '${email}' AND isActive__c = true LIMIT 1`;
 

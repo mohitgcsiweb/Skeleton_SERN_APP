@@ -12,6 +12,7 @@ import {
 } from "react-bootstrap";
 import { toast } from "react-toastify";
 import { Eye, EyeSlashFill } from "react-bootstrap-icons";
+import { jsPDF } from "jspdf";
 const apiUrl = import.meta.env.VITE_API_URL;
 
 const Login = () => {
@@ -86,6 +87,14 @@ const Login = () => {
       toast.error(error.response.data.message || "MFA verification failed");
     }
   };
+
+  function handleDownloadSecret(secret) {
+    const appName = "GCS APP";
+    const doc = new jsPDF();
+    doc.text("Name: " + appName, 10, 10);
+    doc.text("Setup Key: " + secret, 10, 20);
+    doc.save("GCS-MFA-Recovery-Secret-Key.pdf");
+  }
 
   return (
     <Container className="d-grid justify-content-center">
@@ -194,7 +203,23 @@ const Login = () => {
                 <Stack className="col-md">
                   {secret && (
                     <p>
-                      <b>Your MFA Setup Key:</b> {secret}
+                      <b>Your MFA Recovery Secret Key:</b>
+                      <div>
+                        <small style={{ fontSize: "12px", color: "blue" }}>
+                          * Please securely store this recovery key
+                        </small>
+                        <div>
+                          {secret}
+                          <div>
+                            <button
+                              onClick={() => handleDownloadSecret(secret)}
+                              className="btn custom-btn"
+                            >
+                              Download Key
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </p>
                   )}
                 </Stack>
