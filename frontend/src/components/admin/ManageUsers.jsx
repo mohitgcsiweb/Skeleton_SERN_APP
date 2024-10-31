@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import moment from "moment";
 import Select from "react-select";
@@ -14,15 +14,32 @@ import {
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import EditUserModal from "./EditUserModal";
-// import { AgGridReact } from "ag-grid-react";
-// import "ag-grid-community/styles/ag-grid.css";
-// import "ag-grid-community/styles/ag-theme-quartz.css";
-import DataTable from "datatables.net-react";
-import DT from "datatables.net-dt";
+import "datatables.net-bs5";
+import "datatables.net-select-bs5";
+import "datatables.net-responsive-bs5";
+import "datatables.net-buttons-bs5";
+import "datatables.net-buttons/js/buttons.html5";
 import "datatables.net-select-dt";
 import "datatables.net-responsive-dt";
 import "datatables.net-buttons-dt";
+import DataTable from "datatables.net-react";
+import DT from "datatables.net-dt";
+import JSZip from "jszip";
+import pdfMake from "pdfmake/build/pdfmake";
 const apiUrl = import.meta.env.VITE_API_URL;
+
+window.JSZip = JSZip;
+pdfMake.fonts = {
+  Roboto: {
+    normal:
+      "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf",
+    bold: "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Medium.ttf",
+    italics:
+      "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Italic.ttf",
+    bolditalics:
+      "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-MediumItalic.ttf",
+  },
+};
 
 DataTable.use(DT);
 
@@ -91,14 +108,14 @@ const ManageUsers = () => {
   useEffect(() => {
     // console.log("users", users);
     const loadDataTable = async () => {
-      const DataTable = (await import("datatables.net")).default;
+      const DataTable = (await import("datatables.net-bs5")).default;
       if (users.length > 0) {
         let table = new DataTable(tableRef.current, {
           data: users,
           columns: [
             {
               data: null,
-              render: DT.render.select(),
+              render: DataTable.render.select(),
             },
             {
               data: null,
@@ -115,7 +132,7 @@ const ManageUsers = () => {
             },
             {
               data: "lastLogin",
-              render: DT.render.datetime(),
+              render: DataTable.render.datetime(),
             },
             {
               data: "isMfaEnabled",
@@ -136,13 +153,22 @@ const ManageUsers = () => {
               },
             },
           ],
+          columnDefs: [
+            {
+              orderable: false,
+              render: DataTable.render.select(),
+              targets: 0,
+            },
+          ],
           retrieve: true,
           select: {
             style: "os",
             selector: "td:first-child",
+            headerCheckbox: false,
           },
           responsive: true,
           paging: true,
+          order: [[1, "asc"]],
           layout: {
             top2Start: "buttons",
             topStart: "info",
@@ -161,6 +187,28 @@ const ManageUsers = () => {
               action: function (e, dt, node, config) {
                 let data = dt.rows({ selected: true }).data()[0];
                 handleEditClick(data);
+              },
+            },
+            "spacer",
+            {
+              extend: "excelHtml5",
+              exportOptions: {
+                columns: ":not(.notexport)",
+              },
+              init: function (api, node, config) {
+                node.removeClass("btn-secondary");
+                node.addClass("btn-primary");
+              },
+            },
+            "spacer",
+            {
+              extend: "pdfHtml5",
+              exportOptions: {
+                columns: ":not(.notexport)",
+              },
+              init: function (api, node, config) {
+                node.removeClass("btn-secondary");
+                node.addClass("btn-info");
               },
             },
           ],
@@ -206,6 +254,10 @@ const ManageUsers = () => {
       });
       setUsers(users.data);
       toast.success(response.data.message);
+      if (tableInstance) {
+        tableInstance.clear(); // Clear the table
+        tableInstance.rows.add(users.data).draw(); // Add new rows and redraw the table
+      }
     } catch (error) {
       if (error.response.status === 401) {
         navigate("/logout");
@@ -275,71 +327,6 @@ const ManageUsers = () => {
       }
     }
   };
-
-  // const colDefs = useMemo(() => {
-  //   return [
-  //     {
-  //       field: "username",
-  //       headerName: "Username",
-  //       valueGetter: (params) =>
-  //         `${params.data.contact.firstName} ${params.data.contact.lastName}`,
-  //     },
-  //     {
-  //       field: "contact.email",
-  //       headerName: "Email",
-  //       valueGetter: (params) => params.data.contact.email,
-  //     },
-  //     {
-  //       field: "lastLogin",
-  //       headerName: "Last Login",
-  //       valueFormatter: (params) =>
-  //         params.value
-  //           ? moment(params.value).format("MM/DD/YYYY h:mm:ss a")
-  //           : "N/A",
-  //       filter: "agDateColumnFilter",
-  //     },
-  //     {
-  //       field: "isMfaEnabled",
-  //       headerName: "MFA Enabled",
-  //       cellRenderer: (params) => (params.value ? "Yes" : "No"),
-  //       filter: false,
-  //     },
-  //     {
-  //       field: "isActive",
-  //       headerName: "Active Status",
-  //       cellRenderer: (params) => (params.value ? "Yes" : "No"),
-  //     },
-  //     {
-  //       field: "audience.role",
-  //       headerName: "Role",
-  //       valueGetter: (params) => params.data.audience.role,
-  //     },
-  //     {
-  //       field: "actions",
-  //       cellRenderer: (props) => {
-  //         return (
-  //           <Button
-  //             className="custom-btn mb-3"
-  //             onClick={() => handleEditClick(props.data)}
-  //           >
-  //             Edit
-  //           </Button>
-  //         );
-  //       },
-  //       filter: false,
-  //     },
-  //   ];
-  // });
-
-  // const defaultColDef = useMemo(() => {
-  //   return {
-  //     filter: "agTextColumnFilter",
-  //     floatingFilter: true,
-  //     floatingFilter: true,
-  //     autoHeight: true,
-  //     resizable: true,
-  //   };
-  // }, []);
 
   return (
     <Container>
@@ -425,7 +412,7 @@ const ManageUsers = () => {
           >
             <thead>
               <tr>
-                <th></th>
+                <th className="notexport"></th>
                 <th>User Name</th>
                 <th>Email</th>
                 <th>Last Login</th>

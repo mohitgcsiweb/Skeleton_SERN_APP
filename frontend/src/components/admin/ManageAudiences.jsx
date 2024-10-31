@@ -14,14 +14,27 @@ import { useNavigate } from "react-router-dom";
 import EditAudienceModal from "./EditAudienceModal";
 import DataTable from "datatables.net-react";
 import DT from "datatables.net-dt";
-import "datatables.net-select-dt";
-import "datatables.net-responsive-dt";
-import "datatables.net-buttons-dt";
-import { AgGridReact } from "ag-grid-react";
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-quartz.css";
+import "datatables.net-bs5";
+import "datatables.net-select-bs5";
+import "datatables.net-responsive-bs5";
+import "datatables.net-buttons-bs5";
+import "datatables.net-buttons/js/buttons.html5";
+import JSZip from "jszip";
+import pdfMake from "pdfmake/build/pdfmake";
 const apiUrl = import.meta.env.VITE_API_URL;
 
+window.JSZip = JSZip;
+pdfMake.fonts = {
+  Roboto: {
+    normal:
+      "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf",
+    bold: "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Medium.ttf",
+    italics:
+      "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Italic.ttf",
+    bolditalics:
+      "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-MediumItalic.ttf",
+  },
+};
 DataTable.use(DT);
 
 const ManageAudiences = () => {
@@ -55,16 +68,16 @@ const ManageAudiences = () => {
   }, []);
 
   useEffect(() => {
-    console.log("Audience passed to the table", audiences);
+    // console.log("Audience passed to the table", audiences);
     const loadDataTable = async () => {
-      const DataTable = (await import("datatables.net")).default;
+      const DataTable = (await import("datatables.net-bs5")).default;
       if (audiences.length > 0) {
         let table = new DataTable(tableRef.current, {
           data: audiences,
           columns: [
             {
               data: null,
-              render: DT.render.select(),
+              render: DataTable.render.select(),
             },
             {
               data: "role",
@@ -85,13 +98,22 @@ const ManageAudiences = () => {
               },
             },
           ],
+          columnDefs: [
+            {
+              orderable: false,
+              render: DataTable.render.select(),
+              targets: 0,
+            },
+          ],
           retrieve: true,
           select: {
             style: "os",
             selector: "td:first-child",
+            headerCheckbox: false,
           },
           responsive: true,
           paging: true,
+          order: [[1, "asc"]],
           layout: {
             top2Start: "buttons",
             topStart: "info",
@@ -114,6 +136,28 @@ const ManageAudiences = () => {
                 } else {
                   handleEditClick(data);
                 }
+              },
+            },
+            "spacer",
+            {
+              extend: "excelHtml5",
+              exportOptions: {
+                columns: ":not(.notexport)",
+              },
+              init: function (api, node, config) {
+                node.removeClass("btn-secondary");
+                node.addClass("btn-primary");
+              },
+            },
+            "spacer",
+            {
+              extend: "pdfHtml5",
+              exportOptions: {
+                columns: ":not(.notexport)",
+              },
+              init: function (api, node, config) {
+                node.removeClass("btn-secondary");
+                node.addClass("btn-info");
               },
             },
           ],
@@ -218,47 +262,6 @@ const ManageAudiences = () => {
     }
   };
 
-  // const colDefs = useMemo(() => {
-  //   return [
-  //     { field: "role", headerName: "Role" },
-  //     {
-  //       field: "isAdmin",
-  //       headerName: "Is Admin",
-  //       cellRenderer: (params) => (params.data.role === "Admin" ? "Yes" : "No"),
-  //       filter: false,
-  //     },
-  //     {
-  //       field: "active",
-  //       headerName: "Active Status",
-  //       cellRenderer: (params) => (params.value ? "Yes" : "No"),
-  //       filter: false,
-  //     },
-  //     {
-  //       field: "actions",
-  //       cellRenderer: (props) => {
-  //         return !props.data.isAdmin ? (
-  //           <Button
-  //             className="custom-btn mb-3"
-  //             onClick={() => handleEditClick(props.data)}
-  //           >
-  //             Edit
-  //           </Button>
-  //         ) : (
-  //           <></>
-  //         );
-  //       },
-  //       filter: false,
-  //     },
-  //   ];
-  // });
-
-  // const defaultColDef = useMemo(() => {
-  //   return {
-  //     filter: "agTextColumnFilter",
-  //     floatingFilter: true,
-  //   };
-  // }, []);
-
   return (
     <Container>
       <Card className="mt-3">
@@ -303,7 +306,7 @@ const ManageAudiences = () => {
           >
             <thead>
               <tr>
-                <th></th>
+                <th className="notexport"></th>
                 <th>Audience</th>
                 <th>Admin</th>
                 <th>Active</th>
